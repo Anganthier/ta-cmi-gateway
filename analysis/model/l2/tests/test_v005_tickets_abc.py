@@ -474,14 +474,16 @@ def test_calibrate_vl_baender_und_heizstunde_maske(tmp_path: Any) -> None:
     assert loaded is not None and loaded["bands"]["12"]["n"] == 60
 
 
-def test_calibrate_vl_fenster_und_pfad() -> None:
+def test_calibrate_vl_fenster_und_pfad(tmp_path: Any) -> None:
     """Fenster (``window_days``, injizierbar) + Artefakt-Pfad (Daten-Root)."""
     assert vl_cal.vl_calibration_path() == config.VL_KALIB_ESTIMATE_PATH
     assert vl_cal.vl_calibration_path(Path("/data")) == Path("/data/l2/vl_kalibrierung.json")
+    store = make_calib_store(tmp_path / "f", n_band12=60, vl_band12=40.0)
     art = vl_cal.calibrate_vl(
-        features_dir=None,
+        features_dir=store,
         window_days=5,
         now=datetime(2026, 11, 7, tzinfo=ZoneInfo("Europe/Berlin")),
+        out_path=tmp_path / "vl_calib_fenster.json",
     )
     assert art["window_days"] == 5
 
