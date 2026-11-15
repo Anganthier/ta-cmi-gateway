@@ -1,0 +1,91 @@
+<script type="text/javascript">
+titel ="Raumregelung";  
+image = "3.png";
+refreshtime = 60;
+RefreshLink ="";
+taPageVersion = 1;
+$('meta[name="viewport"]').replaceWith('<meta name="viewport" content="width=1600">');
+</script>
+<style type="text/css">
+body{background:white;}
+#values{width:1600px; height:1200px;}
+#pos0{position:absolute; top:13px; left:1408px;}
+#pos0, #pos0 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos1{position:absolute; top:51px; left:1410px;}
+#pos1, #pos1 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos2{position:absolute; top:209px; left:16px;}
+#pos2, #pos2 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos3{position:absolute; top:20px; left:17px;}
+#pos3, #pos3 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos4{position:absolute; top:68px; left:16px;}
+#pos4, #pos4 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos5{position:absolute; top:117px; left:16px;}
+#pos5, #pos5 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos6{position:absolute; top:162px; left:16px;}
+#pos6, #pos6 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos7{position:absolute; top:669px; left:221px;}
+#pos7, #pos7 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos8{position:absolute; top:668px; left:15px;}
+#pos8, #pos8 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos9{position:absolute; top:50px; left:453px;}
+#pos9, #pos9 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos10{position:absolute; top:195px; left:633px;}
+#pos10{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos11{position:absolute; top:362px; left:633px;}
+#pos11{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos12{position:absolute; top:516px; left:633px;}
+#pos12{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos13{position:absolute; top:482px; left:928px;}
+#pos13{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos14{position:absolute; top:165px; left:929px;}
+#pos14{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos15{position:absolute; top:328px; left:932px;}
+#pos15{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos16{position:absolute; top:643px; left:809px;}
+#pos16, #pos16 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos17{position:absolute; top:643px; left:484px;}
+#pos17, #pos17 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos18{position:absolute; top:607px; left:630px;}
+#pos18, #pos18 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos19{position:absolute; top:526px; left:1037px;}
+#pos19{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos20{position:absolute; top:531px; left:1333px;}
+#pos20{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos21{position:absolute; top:529px; left:1191px;}
+#pos21{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos22{position:absolute; top:165px; left:883px;}
+#pos22, #pos22 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos23{position:absolute; top:328px; left:880px;}
+#pos23, #pos23 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos24{position:absolute; top:483px; left:879px;}
+#pos24, #pos24 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos25{position:absolute; top:643px; left:761px;}
+#pos25, #pos25 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos26{position:absolute; top:642px; left:442px;}
+#pos26, #pos26 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos27{position:absolute; top:266px; left:563px;}
+#pos27, #pos27 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos28{position:absolute; top:582px; left:31px;}
+#pos28, #pos28 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos29{position:absolute; top:538px; left:31px;}
+#pos29, #pos29 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos30{position:absolute; top:9px; left:453px;}
+#pos30, #pos30 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos31{position:absolute; top:5px; left:882px;}
+#pos31, #pos31 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos32{position:absolute; top:42px; left:884px;}
+#pos32, #pos32 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos33{position:absolute; top:227px; left:1427px;}
+#pos33, #pos33 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos34{position:absolute; top:186px; left:1428px;}
+#pos34, #pos34 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos35{position:absolute; top:561px; left:342px;}
+#pos35, #pos35 a{font-family: Sans; font-size: 32px; color: rgb(0,0,0); font-style: normal; font-weight: normal; text-align: left;}
+#pos36{position:absolute; top:67px; left:16px; width:200px; height:40px; cursor:pointer;}
+#pos37{position:absolute; top:116px; left:16px; width:200px; height:40px; cursor:pointer;}
+#pos38{position:absolute; top:161px; left:16px; width:200px; height:40px; cursor:pointer;}
+#pos39{position:absolute; top:209px; left:16px; width:200px; height:40px; cursor:pointer;}
+#pos40{position:absolute; top:19px; left:14px; width:200px; height:40px; cursor:pointer;}
+#pos41{position:absolute; top:667px; left:14px; width:200px; height:40px; cursor:pointer;}
+#pos42{position:absolute; top:667px; left:219px; width:200px; height:40px; cursor:pointer;}
+</style>

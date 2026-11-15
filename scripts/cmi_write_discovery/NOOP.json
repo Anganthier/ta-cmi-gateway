@@ -1,0 +1,78 @@
+{
+  "generated": "2026-11-02T08:52:02+01:00",
+  "target": "101301D0180",
+  "result": {
+    "display_address": "101301D0180",
+    "x2": false,
+    "change_address": "019001301D",
+    "request": "GET /INCLUDE/change.cgi?changeadr=019001301D&changeto=3",
+    "before": {
+      "display_address": "101301D0180",
+      "x2": false,
+      "change_address": "019001301D",
+      "option_type": "select",
+      "option_values": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "option_labels": [
+        "STANDBY",
+        "ZEIT/AUTO",
+        "NORMAL",
+        "ABGESENKT",
+        "PARTY",
+        "URLAUB",
+        "FEIERTAG"
+      ],
+      "min_value": null,
+      "max_value": null,
+      "current_value": "3",
+      "current_label": "NORMAL",
+      "schematic_text": "NORMAL",
+      "consistent": true,
+      "read_at": "2026-11-02T07:51:59+00:00"
+    },
+    "changeto": "3",
+    "response_body": "OK\r",
+    "after": {
+      "display_address": "101301D0180",
+      "x2": false,
+      "change_address": "019001301D",
+      "option_type": "select",
+      "option_values": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "option_labels": [
+        "STANDBY",
+        "ZEIT/AUTO",
+        "NORMAL",
+        "ABGESENKT",
+        "PARTY",
+        "URLAUB",
+        "FEIERTAG"
+      ],
+      "min_value": null,
+      "max_value": null,
+      "current_value": "3",
+      "current_label": "NORMAL",
+      "schematic_text": "NORMAL",
+      "consistent": true,
+      "read_at": "2026-11-02T07:52:02+00:00"
+    },
+    "value_changed": false,
+    "label_changed": false,
+    "noop_ok": true,
+    "duration_sec": 3.599
+  }
+}

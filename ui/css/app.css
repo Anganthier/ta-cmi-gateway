@@ -1,0 +1,987 @@
+/* CMI Gateway UI (S4-1/S4-3) -- dark, clean, responsive. Vanilla CSS. */
+
+:root {
+  /* Native-Formulare/Buttons im Dark-Theme rendern (z. B. Passwort-Input). */
+  color-scheme: dark;
+  --bg: #0b1220;
+  --bg-soft: #0e1730;
+  --surface: #121d38;
+  --surface-2: #16234566;
+  --border: #243250;
+  --text: #e6edf7;
+  --muted: #8fa0bd;
+  --accent: #4da3ff;
+  --accent-dim: #2b6cb0;
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --err: #f87171;
+  --set: #f59e0b;      /* setzbar (address != null) */
+  --mode: #a78bfa;     /* mode_select */
+  --switch: #2dd4bf;   /* switch */
+  --radius: 10px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.hidden { display: none !important; }
+[hidden] { display: none !important; } /* das hidden-Attribuett gewinnt ueber .field */
+.muted { color: var(--muted); }
+.small { font-size: 0.85em; }
+
+a { color: var(--accent); }
+
+/* ------------------------------------------------------------------ */
+/* Token-Overlay                                                       */
+/* ------------------------------------------------------------------ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(4, 8, 18, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.overlay-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.6rem 1.8rem;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+}
+
+.overlay-card h2 { margin: 0 0 0.6rem; font-size: 1.15rem; }
+.overlay-card p { color: var(--muted); font-size: 0.92rem; margin: 0 0 1rem; }
+
+#token-form { display: flex; gap: 0.5rem; }
+#token-input {
+  flex: 1;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 0.55rem 0.7rem;
+  font-size: 0.95rem;
+}
+
+#token-cancel {
+  margin-top: 0.9rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0;
+}
+#token-cancel:hover { color: var(--text); }
+
+/* ------------------------------------------------------------------ */
+/* Buttons                                                             */
+/* ------------------------------------------------------------------ */
+.btn-primary, .btn-ghost {
+  font-family: var(--font);
+  font-size: 0.9rem;
+  border-radius: 8px;
+  padding: 0.5rem 0.95rem;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-primary { background: var(--accent-dim); color: #fff; border-color: var(--accent-dim); }
+.btn-primary:hover { background: #3579c0; }
+
+.btn-ghost { background: transparent; color: var(--muted); }
+.btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+
+#token-form button {
+  background: var(--accent-dim);
+  color: #fff;
+  border: 1px solid var(--accent-dim);
+  border-radius: 8px;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+#token-form button:hover { background: #3579c0; }
+
+.token-error {
+  color: var(--err);
+  font-size: 0.85rem;
+  margin: 0.6rem 0 0;
+  min-height: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Topbar                                                              */
+/* ------------------------------------------------------------------ */
+#topbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.7rem 1.2rem;
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.brand { display: flex; align-items: center; gap: 0.55rem; }
+.brand h1 { font-size: 1.05rem; margin: 0; font-weight: 600; }
+
+.brand-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 8px var(--ok);
+}
+
+.chips { display: flex; gap: 0.45rem; flex-wrap: wrap; }
+
+.chip {
+  font-size: 0.78rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.chip-ok { color: var(--ok); border-color: rgba(52, 211, 153, 0.4); }
+.chip-warn { color: var(--warn); border-color: rgba(251, 191, 36, 0.4); }
+.chip-err { color: var(--err); border-color: rgba(248, 113, 113, 0.45); }
+
+.topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+#last-updated { font-size: 0.8rem; }
+#refresh-info { font-size: 0.75rem; }
+
+/* ------------------------------------------------------------------ */
+/* Dashboard                                                           */
+/* ------------------------------------------------------------------ */
+#dashboard { padding: 0; }
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.7rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.8rem 0.95rem;
+  min-height: 86px;
+}
+
+.card-title {
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+.card-wide { grid-column: span 2; }
+
+.card-mode { display: flex; flex-direction: column; justify-content: space-between; }
+
+.bigvalue {
+  font-size: 1.7rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.bigvalue .unit { font-size: 0.85rem; font-weight: 400; color: var(--muted); }
+
+.modus-value { color: var(--accent); font-size: 1.5rem; }
+
+.status-detail { font-size: 0.85rem; display: grid; gap: 0.25rem; }
+.status-detail .row { display: flex; gap: 0.5rem; align-items: baseline; }
+.status-detail .row .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--ok); flex: none; align-self: center;
+}
+.status-detail .row .dot.down { background: var(--err); }
+.status-detail .row .dot.warn { background: var(--warn); }
+.status-detail .row code { color: var(--accent); font-size: 0.8rem; }
+
+.stale-badge {
+  display: inline-block;
+  margin-top: 0.2rem;
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--err);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  border-radius: 6px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Tabs                                                                */
+/* ------------------------------------------------------------------ */
+#tabs {
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.8rem 1.2rem 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.tab {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px 8px 0 0;
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 0.88rem;
+  padding: 0.55rem 1rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tab:hover { color: var(--text); }
+
+.tab.active {
+  color: var(--text);
+  background: var(--bg);
+  border-bottom: 2px solid var(--accent);
+}
+
+.tab-history.active { border-bottom-color: var(--mode); }
+
+/* ------------------------------------------------------------------ */
+/* Loop-Views (S4N-2): Pills, Live-SVG, Status, 24h-Chart              */
+/* ------------------------------------------------------------------ */
+#pages { padding: 0 1.2rem; }
+
+.page { display: none; padding-bottom: 1rem; }
+.page.active { display: block; }
+
+#dashboard { padding: 0.9rem 0 0; }
+
+.loop-toolbar {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 0.8rem 0 0;
+}
+
+#loop-pills { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+
+.loop-pill {
+  font-family: var(--font);
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.4rem 0.95rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.loop-pill:hover { color: var(--text); }
+
+.loop-pill.active {
+  color: #fff;
+  background: var(--accent-dim);
+  border-color: var(--accent-dim);
+}
+
+.loop-toolbar-right {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.loop-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.15rem 1.1rem;
+  margin-top: 0.7rem;
+}
+
+.loop-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.loop-head h2 { margin: 0 0 0.2rem; font-size: 1.15rem; }
+
+.loop-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.45rem;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1 1 320px;
+}
+
+#loop-svg-host svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 980px;
+  margin: 0.4rem auto 0;
+  background: #0d1526;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+/* setzbare Adressen (Read-only; Steuerungs-Overlay = S4N-2b) */
+.loop-settable {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 0.5rem 1.1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.settable-title {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.settable-item {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 0.32rem 0.6rem;
+  font-size: 0.85rem;
+  cursor: help;
+}
+
+.settable-item .ov-addr {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--set);
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 5px rgba(245, 158, 11, 0.7);
+}
+
+.settable-item code { color: var(--accent); font-size: 0.76rem; }
+.settable-state { font-size: 0.78rem; color: var(--muted); }
+
+/* 24h-Chart */
+.loop-chart-area { margin-top: 0.9rem; }
+.loop-chart-wrap { min-height: 360px; }
+#loop-canvas { width: 100% !important; height: 340px !important; }
+#loop-chart-hint { margin: 0.5rem 0 0; }
+
+/* -- P&ID-Farbprofil (ui/svg/pid-symbols.svg, docs/pid-symbols.md) ----- */
+/* Symbole sind currentColor-basiert; die Klassen vererben die Farbe auf  */
+/* jeden <use href="#pid-..."> / .pid-Knoten. ui-architecture.md §1.7.    */
+.pid-vl  { color: #f59e0b; } /* VL / Vorlauf (heiß, amber) */
+.pid-rl  { color: #4da3ff; } /* RL / Rücklauf (kühl, blau) */
+.pid-ww  { color: #38bdf8; } /* WW / Warmwasser (cyan) */
+.pid-gas { color: #94a3b8; } /* Abgas (grau) */
+.pid-ctl { color: #a78bfa; } /* Steuer / Regelung (lila) */
+
+/* -- Loop-SVG: P&ID-Symbole, Fluss, Animation -------------------------- */
+/* Struktursymbole (Speicher/Kessel/Radiatoren ...) gedimmt, Leitungen   */
+/* und aktive Komponenten hell.                                         */
+.loop-svg .sym { color: #e6edf7; }
+.loop-svg .dim { opacity: 0.5; }
+.loop-svg .lbl {
+  fill: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 600;
+  text-anchor: middle;
+}
+.loop-svg .lbl-sub { fill: var(--muted); font-size: 11px; font-weight: 400; }
+.loop-svg .probe-lbl { fill: var(--muted); font-family: var(--font); font-size: 12px; }
+
+/* Readout (PT-Box): Wert + Kurzlabel */
+.loop-svg .ro-val {
+  fill: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.loop-svg .ro-lbl { fill: var(--muted); font-family: var(--font); font-size: 11px; }
+.loop-svg .readout .sym { opacity: 0.85; }
+.loop-svg .readout.has-value .ro-val { fill: #fff; }
+
+/* Fluss: Basis-Leitung (statisch, gedimmt) + Overlay (gestrichelt, fließt) */
+.loop-svg .flow, .loop-svg .pipe-base, .loop-svg .pipe-flow { fill: none; }
+.loop-svg .pipe-base { opacity: 0.32; }
+.loop-svg .flow.on .pipe-base { opacity: 0.95; }
+.loop-svg .pipe-flow {
+  fill: none;
+  stroke-dasharray: 10 14;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.loop-svg .flow.on .pipe-flow {
+  opacity: 0.95;
+  animation: cmi-flow 1.1s linear infinite;
+}
+.loop-svg .pipe-flow[data-dir="rev"] { animation-direction: reverse; }
+@keyframes cmi-flow {
+  to { stroke-dashoffset: -24; }
+}
+
+/* Pumpen-Rotation (Impeller-Blätter rotieren im Pumpenkreis) */
+.loop-svg .imp-blades {
+  fill: rgba(230, 237, 247, 0.35);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.loop-svg .pump-imp.on .imp-blades {
+  fill: var(--ok);
+  animation: cmi-spin 0.9s linear infinite;
+}
+@keyframes cmi-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Ventile: Pfeil = offen/aktiv, Balken = zu */
+.loop-svg .v-open { fill: var(--ok); opacity: 0; }
+.loop-svg .v-open-amber { fill: var(--warn); }
+.loop-svg .v-closed { stroke: #8fa0bd; stroke-width: 2.5; opacity: 0.8; }
+.loop-svg .valve-state.on .v-open { opacity: 1; }
+.loop-svg .valve-state.on .v-closed { opacity: 0; }
+
+/* Kessel aktiv: Glühen */
+.loop-svg .boiler.on .sym {
+  filter: drop-shadow(0 0 7px rgba(245, 158, 11, 0.85));
+}
+
+/* Animation global deaktivieren (Schalter "Animation: aus") */
+body.no-anim .loop-svg .pipe-flow { animation: none !important; }
+body.no-anim .loop-svg .imp-blades { animation: none !important; }
+
+/* „Gesamt“-Platzhalter (S4N-3) */
+.gesamt-bg { fill: var(--bg-soft); stroke: var(--border); }
+.gesamt-title {
+  fill: var(--text);
+  font-family: var(--font);
+  font-size: 22px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+.gesamt-sub {
+  fill: var(--muted);
+  font-family: var(--font);
+  font-size: 13px;
+  text-anchor: middle;
+}
+
+/* ------------------------------------------------------------------ */
+/* Historie (S4-3)                                                     */
+/* ------------------------------------------------------------------ */
+.hist-controls {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+  margin: 0.6rem 0;
+}
+
+.hist-row {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.field { display: flex; flex-direction: column; gap: 0.25rem; }
+.field > span {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.field select, .field input {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text);
+  padding: 0.45rem 0.6rem;
+  font-size: 0.9rem;
+  font-family: var(--font);
+  min-width: 130px;
+}
+
+.field input[type="number"] { min-width: 90px; }
+.field input[type="date"] { min-width: 140px; color-scheme: dark; }
+
+#hist-channels-details { margin-top: 0.8rem; }
+#hist-channels-details summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.85rem;
+  user-select: none;
+}
+
+.channel-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  margin-top: 0.6rem;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.channel-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.channel-item input { accent-color: var(--accent); }
+.channel-item .ch-num { color: var(--accent); font-weight: 600; }
+.channel-item.disabled { opacity: 0.45; }
+
+.chart-wrap {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.8rem;
+  min-height: 320px;
+}
+
+#history-canvas { width: 100% !important; height: 420px !important; }
+
+.chart-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(18, 29, 56, 0.75);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  color: var(--muted);
+  z-index: 5;
+}
+
+.chart-error { color: var(--err); }
+
+#hist-hint { margin: 0.5rem 0 1rem; }
+
+/* ------------------------------------------------------------------ */
+/* KI-Panel (S4N-UI-KI): Kopf, Fehler, Zone-Karten, Tier-B-Advisorys   */
+/* ------------------------------------------------------------------ */
+#page-ki { padding-bottom: 1rem; }
+
+.ki-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 0.4rem 0 0.9rem;
+}
+
+.ki-head h2 { margin: 0 0 0.25rem; font-size: 1.15rem; }
+.ki-head-right { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+
+.ki-error {
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  color: var(--err);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.95rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.6rem;
+}
+.ki-error.chip-err { background: rgba(248, 113, 113, 0.18); }
+
+.ki-loading {
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 1.4rem 0.2rem;
+}
+
+.ki-content { display: grid; gap: 0.9rem; }
+
+.ki-h {
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0.4rem 0 0.1rem;
+}
+
+.ki-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 0.7rem;
+}
+
+.ki-advisory {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.7rem;
+}
+
+.ki-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 0.9rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.ki-card-changed { border-color: rgba(52, 211, 153, 0.55); }
+.ki-card-advisory-active { border-color: rgba(251, 191, 36, 0.45); }
+.ki-card-pump { border-color: rgba(96, 165, 250, 0.45); }
+.ki-card-heating { border-color: rgba(251, 191, 36, 0.3); }
+
+/* v0.5: ΔT-Diagnose-Block (#ki-diagnostics, aus rm_diagnostics) */
+.ki-diagnostics {
+  display: grid;
+  gap: 0.55rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 0.9rem;
+}
+.ki-dt-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.ki-dt-head-inactive { opacity: 0.85; }
+.ki-dt-cond { font-size: 0.78rem; font-weight: 600; }
+.ki-dt-reasons {
+  margin: 0;
+  padding-left: 1.15rem;
+  color: var(--muted);
+  flex-basis: 100%;
+  display: grid;
+  gap: 0.1rem;
+}
+.ki-dt-rows { display: grid; gap: 0.35rem; }
+.ki-dt-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  padding: 0.28rem 0.4rem;
+  background: var(--bg-soft);
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.ki-dt-zone {
+  font-weight: 600;
+  min-width: 2.6rem;
+  text-transform: capitalize;
+}
+.ki-dt-dt { font-weight: 600; }
+.ki-dt-ok { color: var(--ok); }
+.ki-dt-warn { color: var(--warn); }
+.ki-dt-lag { white-space: nowrap; }
+.ki-dt-flow { font-size: 0.72rem; }
+
+/* v0.5: Minderer-Block (#ki-minderer) */
+.ki-minderer { display: grid; gap: 0.55rem; }
+.ki-minderer-v {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding: 0.4rem 0.55rem;
+  background: rgba(251, 191, 36, 0.07);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  border-radius: 8px;
+}
+.ki-minderer-v-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--warn);
+}
+.ki-minderer-v-target { font-weight: 700; font-size: 1.02rem; }
+.ki-minderer-gate { margin: 0; display: flex; gap: 0.5rem; align-items: baseline; flex-wrap: wrap; }
+
+/* v0.5: O8-Pumpen-Block (#ki-pump, max. 1 Karte) */
+.ki-pump { display: grid; gap: 0.55rem; }
+.ki-pump-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.7rem;
+}
+.ki-pump-opts {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+}
+
+/* v0.5: Heizkurven-Card (überarbeiteter Tier-B) */
+.ki-heating-akt { margin: 0; font-weight: 600; font-size: 1rem; }
+.ki-heating-target { margin: 0; }
+
+/* v0.5-engine-rework (2026-11-12): Heizkurve-Details einklappbar
+   (<details>/<summary> mit Kalibrierungs-/Raster-Fachjargon) */
+.ki-heating-detail { margin: 0; }
+.ki-heating-detail summary {
+  cursor: pointer;
+  font-size: 0.78rem;
+  user-select: none;
+}
+.ki-heating-detail[open] summary { margin-bottom: 0.25rem; }
+
+/* v0.5-engine-rework (2026-11-12): O8-Statuszeile (Status statt Empfehlung,
+   kompakte Zeile ohne Arrow-Modus→Empfehlung) */
+.ki-pump-status {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.98rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* v0.5-engine-rework (2026-11-12): Minderer — "Empfohlene Vorgabe"-Zeile
+   (Sollspannung, linear geschätzt) */
+.ki-minderer-rec { margin: 0; font-variant-numeric: tabular-nums; }
+
+/* v0.5-engine-rework (2026-11-12): RAS-Zone — maintainer-Beleg-Format prominent
+   (raum_text) + de-emphasized Offset-Handlungs-Hint */
+.ki-zone-raum {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+.ki-zone-raum-hint { margin: 0; }
+
+.ki-card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.ki-zone { font-weight: 600; font-size: 0.98rem; }
+
+.ki-exec-badge { font-size: 0.72rem; }
+
+.ki-values {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.ki-value-akt { color: var(--muted); font-weight: 500; }
+.ki-value-arrow { color: var(--ok); }
+.ki-value-nach { color: var(--ok); }
+
+.ki-reason { margin: 0; color: var(--text); }
+.ki-effect { margin: 0; }
+.ki-hint { margin: 0; }
+
+.ki-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.15rem;
+}
+
+.ki-apply-btn { margin-top: 0.35rem; justify-self: start; }
+
+/* KI-Apply-Dialog (S3-1) */
+.ki-apply-card { max-width: 460px; }
+.ki-apply-what { color: var(--text); font-weight: 600; }
+.ki-apply-params { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 0.8rem; }
+.ki-apply-warn {
+  color: var(--warn);
+  font-size: 0.82rem;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+}
+.ki-apply-label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0.6rem 0 0.4rem;
+}
+.ki-apply-label input {
+  width: 100%;
+  margin-top: 0.3rem;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 0.55rem 0.7rem;
+  font-size: 0.95rem;
+}
+.ki-apply-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+}
+.ki-apply-ok {
+  color: var(--ok);
+  font-size: 0.85rem;
+  margin: 0.6rem 0 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Footer                                                              */
+/* ------------------------------------------------------------------ */
+#footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.9rem 1.2rem 1.6rem;
+  font-size: 0.8rem;
+  border-top: 1px solid var(--border);
+  margin-top: 1rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Responsive: Mobile (375px)                                          */
+/* ------------------------------------------------------------------ */
+@media (max-width: 640px) {
+  html, body { font-size: 14px; }
+
+  #topbar { padding: 0.6rem 0.8rem; gap: 0.6rem; }
+  .topbar-right { margin-left: 0; width: 100%; }
+
+  #dashboard { padding: 0.8rem 0.8rem 0.3rem; }
+  .dash-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+  .card-wide { grid-column: span 2; }
+  .bigvalue { font-size: 1.4rem; }
+
+  #tabs { padding: 0.7rem 0.8rem 0; }
+  .tab { font-size: 0.8rem; padding: 0.5rem 0.7rem; }
+
+  #pages { padding: 0 0.8rem; }
+
+  #dashboard { padding: 0.7rem 0 0; }
+
+  /* Loop-Views: Pills horizontal scrollbar, Head stapelt, SVG scrollable */
+  .loop-toolbar { padding-top: 0.6rem; }
+  #loop-pills {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+  .loop-toolbar-right { width: 100%; justify-content: flex-start; }
+  .loop-head { flex-direction: column; }
+  .loop-status { justify-content: flex-start; }
+  #loop-svg-host svg { min-width: 640px; }
+  #loop-svg-host { overflow-x: auto; scrollbar-width: thin; }
+  #loop-canvas { height: 260px !important; }
+
+  .hist-row { gap: 0.6rem; }
+  .field select, .field input { min-width: 110px; }
+  #history-canvas { height: 300px !important; }
+
+  /* KI-Panel: Kopf stapelt, Karten 1-spaltig */
+  .ki-head { flex-direction: column; align-items: flex-start; }
+  .ki-grid, .ki-advisory, .ki-pump-grid { grid-template-columns: 1fr; }
+  .ki-dt-row { flex-direction: column; align-items: flex-start; gap: 0.2rem; }
+  .ki-values { font-size: 1rem; }
+  .ki-apply-card { padding: 1.1rem 1.2rem; }
+}
+
+/* ------------------------------------------------------------------ */
+/* TV-Modus (S1): 10-Foot-Ansicht auf dem LG-TV (webOS, Fernbedienung)  */
+/* ------------------------------------------------------------------ */
+/* Klasse "tv" am <html> -- vom Inline-Head-Script (index.html) gesetzt,
+   BEVOR das erste CSS gemalt wird (Anti-Flash). Alles unten haeNGT
+   AUSCHLIESSLICH unter .tv -> Desktop-Modus bleibt unveraendert
+   (Hover, Tab-Größen, KI-Tab sichtbar). Bestehende Breakpoints werden
+   NICHT geaendert; nur Groessen steigen. Kein Dark-Mode-Wechsel
+   (bestehendes Farbschema, OLED-tauglich).                             */
+html.tv { font-size: 20px; }
+
+/* KI-Panel = Write-Einstieg: im TV-Modus Read-only -> Tab + Apply-Dialog
+   ausgeblendet (D-pad-Roving ueberspringt den Tab ueber display:none). */
+.tv .tab[data-page="ki"] { display: none; }
+.tv #ki-apply-overlay { display: none !important; }
+
+/* Tabs: ~1,5-2x groesser, Fokus-Ring klar sichtbar (>= 4px, helle
+   Kontrastfarbe aus dem Farbschema). Tab-Labels unveraendert. */
+.tv #tabs { gap: 0.5rem; }
+.tv .tab {
+  font-size: 1.4rem;
+  padding: 1rem 1.8rem;
+  border-radius: 12px;
+}
+.tv .tab:hover { color: var(--muted); } /* Hover abschalten: D-pad hat keinen Maus-Zeiger */
+.tv .tab:focus,
+.tv .tab:focus-visible {
+  outline: 4px solid var(--text);
+  outline-offset: 3px;
+}
+.tv .tab.active {
+  color: var(--text);
+  background: var(--bg);
+  border-bottom: 3px solid var(--accent);
+}
+
+/* Kernwerte/Headlines auf 10 m gut lesbar halten. */
+.tv .bigvalue { font-size: 2.4rem; }
+.tv .modus-value { font-size: 2.1rem; }
+.tv #topbar h1 { font-size: 1.5rem; }
+.tv .loop-head h2,
+.tv .ki-head h2 { font-size: 1.6rem; }
+
+/* Chart-Fixes: Chart-Wrapper an die hoeheren Groessen anpassen (keine
+   neuen Breakpoints). */
+.tv .loop-chart-wrap { min-height: 480px; }
+.tv #loop-canvas { height: 460px !important; }
+.tv .chart-wrap { min-height: 420px; }
+.tv #history-canvas { height: 540px !important; }

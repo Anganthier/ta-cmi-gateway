@@ -1,0 +1,175 @@
+# CMI-Raspi-Compose (S5-Raspi R1) — zwei Container aus EINEM Image cmi-gateway:latest
+#
+# Layout am Pi (<pi-host>; Alpine aarch64, Docker-Engine ohne
+# compose-Plugin, Q-115 -> statisches Binary):
+#   /var/lib/docker/cmi/                  (Slim-Host-Tree; /var/lib/docker = sda1/USB)
+#   ├── bin/docker-compose                # statisches v2.x-Binary (linux-aarch64,
+#   │                                     #   sha256-pinned: s. docker-compose-release.md
+#   │                                     #   + docker-compose-sha256 im Repo). NUR im
+#   │                                     #   Pi-Tree, niemals ins Repo.
+#   ├── repo/                             # git-Clone (Gitea, credential.helper=store);
+#   │   │                                 #   Build-Context (Dockerfile + app/ + analysis/
+#   │   └── deploy/raspi/merge_loop.sh    #     + ui/ + assets/); M1-Merge-Loop-Script,
+#                                         #     wird cmi-m1-merge als ro-Bind gehangen.
+#   ├── compose-raspi.yml                 # diese Datei (gespiegelt aus deploy/compose/)
+#   └── .env                              # 1:1-Inhaltsspiegel des Pop!_OS-.env (umask 077,
+#                                         #     0600; Werte/Tokens identisch)
+#
+# Persistenz = Docker-Named-Volumes (Default-Root /var/lib/docker/volumes/ = USB-SSD
+# sda1 -> alles persistiert auf USB, nicht auf der eMMC):
+#   cmi_data   -> Gateway: /data (history.db, cmi_log_pq, winsol_pq, features)
+#                  Merge:  /srv/cmi/data (= M1 config.DATA_DIR im Container; der
+#                          M1-Build ist der EINZIGE Writer von data/features)
+#   cmi_models -> Gateway: /srv/cmi/models (L1 v003-Artefakt, ro; Bevoelkerung in R3)
+#
+# Profil-Semantik: cmi-m1-merge laeuft NUR auf dem Pi (docker compose --profile merge).
+# Pop!_OS nutzt unveraendert docker-compose.yml (Bind-Mounts ./data + Cron-Maint-Loop
+# crontab; doppelte Feature-Writes zwischen Host und Pi sind damit ausgeschlossen).
+#
+# Startbefehle am Pi (R2/R3):
+#   /var/lib/docker/cmi/bin/docker-compose -f /var/lib/docker/cmi/compose-raspi.yml --profile merge up -d
+# R1 baut NICHTS und startet NICHTS (Build + Start = R2; Volume-Besiedlung = R3).
+
+# Named-Volumes: cmi_data + cmi_models. Default-Root = /var/lib/docker/volumes/
+# (USB-SSD sda1). Beide werden in R1 via `docker volume create` angelegt
+# (existiert bereits = idempotent). Sie werden hier deklariert, damit Compose
+# sie kennt (sonst "refers to undefined volume"); die Default-Anlage (keine
+# external: true) uebergibt das Erstellen an Compose, aber R1 legt sie
+# bereits explizit an.
+volumes:
+  # EXPLIZITE `name:`-Override: ohne sie prefix-t Compose Named-Volumes mit dem
+  # Projektnamen (Default = Verzeichnisname der Compose-Datei = "cmi" ->
+  # cmi_cmi_data/cmi_cmi_models; R2-Befund 2026-11-02). Durch `name:` bleiben
+  # die kanonischen R1-Namen cmi_data/cmi_models -> pi_sync.sh + Runbook +
+  # R3-Bulk-Zielpfade (/var/lib/docker/volumes/cmi_data/_data) stimmen.
+  cmi_data:
+    name: cmi_data
+  cmi_models:
+    name: cmi_models
+
+services:
+  cmi-gateway:
+    build:
+      # Absoluter Build-Context am Pi (Slim-Host-Tree /var/lib/docker/cmi/repo).
+      context: /var/lib/docker/cmi/repo
+      dockerfile: Dockerfile
+    image: cmi-gateway:latest
+    container_name: cmi-gateway
+    restart: unless-stopped
+    ports:
+      - "30001:30001"
+    env_file:
+      # Absolut: liegt neben dieser Compose-Datei im Pi-Tree (1:1-Spiegel des
+      # Pop!_OS-.env, Werte/Tokens identisch).
+      - /var/lib/docker/cmi/.env
+    environment:
+      # CMI is on the host LAN; make it reachable from the container.
+      CMI_BASE_URL: ${CMI_BASE_URL:-http://192.168.0.100}
+      # L2 v0.2 (cee53a5): dynamische Executability aus dem CMI-Write-Pfad-
+      # Discovery (INVENTAR.json, read-only-Bind aus dem Pi-Repo-Tree).
+      # Fehlt/ungueltig -> Fail-Closed (alle Empfehlungen advisory, nie
+      # cmi-settable).
+      CMI_WRITE_INVENTAR: /srv/cmi/scripts/cmi_write_discovery/INVENTAR.json
+      # History-DB auf das Named-Volume legen (default wuerde /srv/cmi/data im
+      # Image-Layer beschreiben -> Datenverlust bei jedem Rebuild).
+      HISTORY_DB_PATH: /data/history.db
+      # CMI-Log-Parquet-Store (S4N-LogParquet) auf dem cmi_data-Volume: der
+      # Default (REPO_ROOT/data) laege im Image-Layer und wuerde bei jedem
+      # Rebuild verschwinden. winsol_pq bleibt strikt read-only (eigener
+      # ro-Mount), cmi_log_pq wird hier von der App geschrieben (laufender
+      # Monat, alle 5 min atomar).
+      CMI_LOG_PARQUET_DIR: /data/cmi_log_pq
+      # L2-Empfehlungs-Engine (S4N-UI-KI): Store + L1-Artefakt liegen auf den
+      # read-only Named-Volume-Mounts (tiefer als der rw /data-Mount, der
+      # gewinnt). Default (REPO_ROOT/data/features) laeg im Image-Layer ->
+      # explizit.
+      L1_STORE_DIR: /data/features
+      L1_MODEL_DIR: /srv/cmi/models/cmi-brain/v003
+      # S3-1-Audit (schreibbar, auf dem rw cmi_data-Volume).
+      AUDIT_JSONL_PATH: /data/audit/change.jsonl
+      # CMI-/LOG-Poller (S4N-LogPoll): alle CMI_LOG_POLL_SEC (Default 300 s)
+      # /LOG-Index- + Datenfiles lesen und in den cmi_log_pq-Store schreiben.
+      CMI_LOG_POLL_SEC: ${CMI_LOG_POLL_SEC:-300}
+      # READ-ONLY-Default: der Poller sendet NIEMALS /LOG/clear.log (wuerde
+      # den CMI-Buffer inkl. der aktiven, noch nicht indexierten Block-Datei
+      # loeschen -> Datenverlust; dokumentiert 2026-10-30).
+      CMI_LOG_CLEAR: ${CMI_LOG_CLEAR:-false}
+      # Host-TZ (Europe/Berlin), damit datetime.now()-Stempel in history.db
+      # mit den Bestand-Rows (CET) und den WinSol-Timestamps (lokale
+      # Zeitebene) auf EINER Zeitachse liegen (Container-Default = UTC).
+      TZ: Europe/Berlin
+      # R3: WinSol-Store via rw /data-Mount (Named-Volume-Submounts sind in
+      # Compose nicht moeglich; der Volume-Root wurde stattdessen gemountet
+      # und die echten Subdirs gemaskt). App-Pfad via Settings-Env.
+      WINSOL_PARQUET_DIR: /data/winsol_pq
+    volumes:
+      # Live-Operandsdaten (History-DB + Caches) im Named-Volume cmi_data
+      # (USB-SSD): ueberlebt docker-rebuilds. Die Bestands-DB wird in R3
+      # eingemischt. Ganzes Verzeichnis (nicht nur history.db), damit die
+      # SQLite -wal/-shm-Seitenfiles neben der Main-DB konsistent bleiben.
+      - cmi_data:/data
+      # WinSol-Parquet-Store strikt read-only, auch innerhalb des /data-Mounts.
+      # L1-Feature-Store m1.3 (S4N-UI-KI, L2-Engine im Image): strikt
+      # read-only, auch INNERHALB des rw /data-Mounts -- der tiefer
+      # ro-Mount gewinnt (wie winsol_pq). App-Pfad: /data/features
+      # (Settings l1_store_dir, env-override L1_STORE_DIR).
+      # WinSol-Parquet-Store (read-only, on-demand-History) auf dem
+      # Default-Pfad, den die App liest (winsol_parquet_dir, kein
+      # Env-Override): ohne diesen ro-Mount wuerde das Gateway den
+      # WinSol-Bestand NIE sehen (Default-Pfad laege im Image-Layer).
+      # L1-Artefakt-Root (S4N-UI-KI): /srv/cmi/models read-only aus dem
+      # cmi_models-Volume (Bevoelkerung in R3). App-Pfad-Default:
+      # /srv/cmi/models/cmi-brain/v003 (Settings l1_model_dir,
+      # env-override L1_MODEL_DIR).
+      - cmi_models:/srv/cmi/models:ro
+      # L2 v0.2 (cee53a5): CMI-Write-Pfad-Discovery (INVENTAR.json) aus dem
+      # Pi-Repo-Tree, read-only. Bind-Quelle liegt im git-Clone (R1); fehlt
+      # die Datei -> Executability Fail-Closed (alle advisory), kein Crash.
+      - /var/lib/docker/cmi/repo/scripts/cmi_write_discovery/INVENTAR.json:/srv/cmi/scripts/cmi_write_discovery/INVENTAR.json:ro
+    # Read-only against the CMI; no privileged mode needed.
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      # /api/v1/health liefert 503, wenn das CMI down ist -- das Gateway
+      # selbst laeuft dann. urlopen wirft bei >=400 (HTTPError), daher
+      # HTTPError abfangen und 503 als "Gateway ok, CMI down" werten.
+      test: ["CMD", "python", "-c", "import urllib.request,urllib.error,sys\ntry:\n    r=urllib.request.urlopen('http://127.0.0.1:30001/api/v1/health',timeout=5); sys.exit(0 if r.status in (200,503) else 1)\nexcept urllib.error.HTTPError as e:\n    sys.exit(0 if e.code in (200,503) else 1)\nexcept Exception:\n    sys.exit(1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # M1-Feature-Build-Loop (S5-Raspi): stündlich um :15 inkrementell
+  # `python -m analysis.model.m1 features`, Sonntag 03:00 --full --verify
+  # (Exit 3 = Drift-Alarm) + --full (Referenz-Sync) — exakt die Cron-Semantik
+  # des Pop!_OS-Hosts (dort crontab; am Pi ersetzt der Loop die crontab,
+  # weil der Merge-Container der einzige M1-Writer ist und der Feature-Store
+  # im cmi_data-Volume liegt). Kein Port, kein Healthcheck (kein API; die
+  # Restart-Policy genuegt), kein CMI-Zugriff.
+  cmi-m1-merge:
+    profiles:
+      - merge
+    image: cmi-gateway:latest
+    container_name: cmi-m1-merge
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      TZ: Europe/Berlin
+    volumes:
+      # M1 DATA_DIR (analysis/model/m1/config.py: parents[3]/data, WORKDIR
+      # /srv/cmi) auf dem cmi_data-Volume; der M1-Build ist der EINZIGE
+      # Writer von data/features (atomar .part + os.replace).
+      - cmi_data:/srv/cmi/data
+      # R3: winsol_pq + wx_cache kommen jetzt korrekt ueber diesen Mount
+      # (Sub-Volume-Mounts waren gemaskt, s. Gateway-Kommentar). M1-Build
+      # liest offline; kein CMI-Zugriff.
+      # WinSol-Roh-Parquet (read-only): M1-Quelle, wird NIE geschrieben.
+      # Wetter-Roh-Cache (read-only): offline-Runs lesen era5/hfa-JSON-Cache;
+      # Fallback-Runs (z.B. bei fehlendem Vormonat-Kontext) koennen
+      # --force-Refetchs ausloesen -> wg. ro-Mount dann Fehllauf statt
+      # Silent-Write (Fail-Laut, s. merge_loop.sh-Log).
+      # M1-Loop-Script aus dem Pi-Repo-Tree (das Image COPYt deploy/ NACH
+      # aus dem Build-Context -- s. Dockerfile; Bind-Mount ohne Image-Aenderung).
+      - /var/lib/docker/cmi/repo/deploy/raspi/merge_loop.sh:/srv/cmi/deploy/raspi/merge_loop.sh:ro
+    command: ["bash", "/srv/cmi/deploy/raspi/merge_loop.sh"]

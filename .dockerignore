@@ -1,0 +1,23 @@
+# Docker-Build-Context trimmen (Build-Context = Repo-Root; nur COPY-Ziele
+# sind relevant, aber der Context wird hochgeladen -> grosse Verzeignisse
+# ausschliessen):
+.git
+.gitignore
+.venv
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.coverage
+htmlcov
+data
+models
+discovery
+docs
+scripts
+ui/vendor/*.map
+**/__pycache__
+*.pyc
+# L2-Wetter-Raw-Cache (git-ignored; Read/Write im laufenden Container):
+analysis/model/l2/runs
+analysis/model/m2b/runs
+analysis/model/m2/runs

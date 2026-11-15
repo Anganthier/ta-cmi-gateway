@@ -1,0 +1,25 @@
+=== UVR610 (CAN-Node 32) — DEFINITIVE NETZLISTE (Revision 3, 2026-10-31) ===
+QUELLE: 20211020_owner.tdw bzw. UVR610_32_20211029.tdw (~/Nextcloud/FamilyArea/house-heating/house-heating/),
+definitiv extrahiert 2026-10-31 (Revision 3 der UVR-Analyse, cmi/docs/uvr-programm-analyse.md).
+EXTRAKTIONS-METHODE (reproduzierbar): <o classname="a2dWirePolylineL">-TPin-Endpunkte + <connect resolveid>
++ Modul-Pin-<o resolveid> unionisieren; 51/75 Wire-Objekte und alle I/O-Kanal-Objekte (u1611Taco*/u16x2Taco*)
+haben id=None -> NUR per Element keyen, NIE per (x,y)-Koordinaten (fusioniert unverbundene Kreuzungen).
+Netzlisten-Format: "N<nr>: Quellpin | Ziel1 | Ziel2 | ..." (Modul#id.Pin / I/O-Kanal-Objekt[ch]).
+=== UVR610_32_20211029.tdw: DEFINITIVE NETZLISTE (I/O + Funktions-Module) ===
+N 1: u16x2FunkMathematik#1646566637850105.Erg | u16x2TacoDLAusgang[ch1]
+N 2: u16x2FunkMathematik#1646567714173287.Fg | u16x2FunkVergleich#1646567714173158.AklB
+N 3: u16x2FunkMathematik#1646567716619846.Erg | u16x2TacoDLAusgang[ch3]
+N 4: u16x2FunkSolReg#1648128860391273.Koll | u16x2TacoEingang[ch4]
+N 5: u16x2FunkMathematik#1646566637850105.Fg | u16x2FunkVergleich#1646566088703251.AklB
+N 6: u16x2FunkVergleich#1646566088703251.WertA | u16x2TacoCANEingang[ch10]
+N 7: u16x2FunkMathematik#1646567716619846.Fg | u16x2FunkVergleich#1646567716619706.AklB
+N 8: u16x2FunkVergleich#1646567716619706.WertA | u16x2TacoCANEingang[ch14]
+N 9: u16x2FunkSolReg#1648128860391273.Sol | u16x2TacoAusgang[ch1]
+N10: u16x2FunkVergleich#1646567714173158.WertA | u16x2TacoCANEingang[ch12]
+N11: u16x2FunkSolReg#1648128860391273.Beg | u16x2TacoCANEingang[ch1]
+N12: u16x2FunkSolReg#1648128860391273.Ref | u16x2TacoCANEingang[ch3]
+N13: u16x2FunkMathematik#1646567714173287.Erg | u16x2TacoDLAusgang[ch2]
+
+Gesamt-Netze: 13
+
+=== NAMED SIGNALS (0) ===

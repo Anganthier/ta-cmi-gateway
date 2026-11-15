@@ -1,0 +1,93 @@
+=== UVR1611 (CAN-Node 1) — DEFINITIVE NETZLISTE (Revision 3, 2026-10-31) ===
+QUELLE: 20211020_owner.tdw bzw. UVR610_32_20211029.tdw (~/Nextcloud/FamilyArea/house-heating/house-heating/),
+definitiv extrahiert 2026-10-31 (Revision 3 der UVR-Analyse, cmi/docs/uvr-programm-analyse.md).
+EXTRAKTIONS-METHODE (reproduzierbar): <o classname="a2dWirePolylineL">-TPin-Endpunkte + <connect resolveid>
++ Modul-Pin-<o resolveid> unionisieren; 51/75 Wire-Objekte und alle I/O-Kanal-Objekte (u1611Taco*/u16x2Taco*)
+haben id=None -> NUR per Element keyen, NIE per (x,y)-Koordinaten (fusioniert unverbundene Kreuzungen).
+Netzlisten-Format: "N<nr>: Quellpin | Ziel1 | Ziel2 | ..." (Modul#id.Pin / I/O-Kanal-Objekt[ch]).
+=== 20211020_owner.tdw: DEFINITIVE NETZLISTE (I/O + Funktions-Module) ===
+N 1: u1611FunkAnalog#1635580722632122.Erg | u1611TacoNWAusgang[ch26]
+N 2: u1611FunkAnalog#1635582671191727.EV1 | u1611TacoNWEingang[ch18]
+N 3: u1611FunkAnalog#1635582673587133.Erg | u1611TacoNWAusgang[ch28]
+N 4: u1611FunkAnalog#1635582675357006.EV1 | u1611TacoNWEingang[ch21]
+N 5: u1611FunkAnalog#1635582683484644.EV1 | u1611TacoNWEingang[ch24]
+N 6: u1611FunkAnalog#1635582683484644.Erg | u1611TacoNWAusgang[ch31]
+N 7: u1611FunkAnalog#1635754961948349.Erg | u1611TacoSignal#None.Out
+N 8: u1611FunkAnfHeiz#11245104.AnfT | u1611TacoEingang[ch5]
+N 9: u1611FunkAnfHeiz#11245104.SAb | u1611FunkAnfHeiz#11245104.SAnf | u1611FunkHeizkreis#10211297.VLST
+N10: u1611FunkAnfWW#11228837.Fg | u1611TacoSignal#None.In
+N11: u1611FunkAnfWW#11228837.WW | u1611TacoEingang[ch1]
+N12: u1611FunkHeizkreis#10211297.Fg | u1611TacoSignal#None.In
+N13: u1611FunkHeizkreis#10211297.Misch | u1611TacoAusMischer[ch3]
+N14: u1611FunkHeizkreis#10211297.VL | u1611TacoEingang[ch6]
+N15: u1611FunkLadepumpe#11238988.Pump | u1611TacoAusSchalt[ch1]
+N16: u1611FunkLadepumpe#11238988.Ref | u1611TacoEingang[ch3]
+N17: u1611FunkLogik#11115800.EV2 | u1611TacoSignal#None.In
+N18: u1611FunkLogik#11115800.EV3 | u1611TacoSignal#None.In
+N19: u1611FunkLogik#11115800.Erg | u1611FunkVergleich#11246068.Fg | u1611TacoAusSchalt[ch7]
+N20: u1611FunkLogik#11115800.Fg | u1611TacoSignal#None.In
+N21: u1611FunkLogik#11328897.EV2 | u1611FunkVergleich#11326563.Kl | u1611TacoSignal#None.Out
+N22: u1611FunkLogik#11328897.Erg | u1611TacoSignal#None.Out
+N23: u1611FunkTimer#11217412.Ausg | u1611TacoSignal#None.Out
+N24: u1611FunkTimer#11217412.Trig | u1611TacoEingang[ch16]
+N25: u1611FunkVergleich#11205958.Gr | u1611TacoSignal#None.Out
+N26: u1611FunkVergleich#11205958.Kl | u1611TacoSignal#None.Out
+N27: u1611FunkVergleich#11223559.Fg | u1611TacoAusSchalt[ch2]
+N28: u1611FunkVergleich#11223559.Gr | u1611TacoAusSchalt[ch9]
+N29: u1611FunkVergleich#11223559.Wa | u1611TacoEingang[ch2]
+N30: u1611FunkVergleich#11246068.Kl | u1611TacoAusSchalt[ch6]
+N31: u1611FunkVergleich#11246068.Wa | u1611TacoEingang[ch4]
+N32: u1611FunkAnalog#11325938.Erg | u1611FunkVergleich#11326563.Wa
+N33: u1611FunkVergleich#1635142667404835.Gr | u1611TacoAusSchalt[ch2]
+N34: u1611FunkVergleich#1635142667404835.Wb | u1611TacoEingang[ch1]
+N35: u1611FunkZaehler#11313164.EV1 | u1611TacoSignal#None.In
+N36: u1611FunkAnfHeiz#11245104.Anf | u1611TacoAusSchalt[ch5]
+N37: u1611FunkAnfWW#11228837.Anf | u1611FunkTimer#11325631.Trig | u1611TacoAusSchalt[ch5]
+N38: u1611FunkZaehler#11118676.EV1 | u1611TacoAusSchalt[ch5]
+N39: u1611FunkHeizkreis#10211297.HKP | u1611TacoAusSchalt[ch8]
+N40: u1611FunkVergleich#11205958.Wa | u1611TacoEingang[ch10]
+N41: u1611FunkLogik#11115800.EV1 | u1611TacoEingang[ch16]
+N42: u1611TacoEingang[ch2] | u1611TacoNWAusgang[ch18]
+N43: u1611FunkVergleich#1635142667404835.Wa | u1611TacoEingang[ch5]
+N44: u1611FunkVergleich#11223559.Wb | u1611TacoEingang[ch7]
+N45: u1611FunkHeizkreis#10211297.AT | u1611TacoEingang[ch8]
+N46: u1611FunkLadepumpe#11238988.Zub | u1611TacoEingang[ch9]
+N47: u1611TacoEingang[ch1] | u1611TacoNWAusgang[ch17]
+N48: u1611TacoEingang[ch3] | u1611TacoNWAusgang[ch19]
+N49: u1611FunkAnalog#1635582671191727.Erg | u1611TacoNWAusgang[ch27]
+N50: u1611FunkAnalog#1635582675357006.Erg | u1611TacoNWAusgang[ch29]
+N51: u1611FunkAnalog#1635582678100768.Erg | u1611TacoNWAusgang[ch30]
+N52: u1611FunkAnalog#1635580722632122.EV1 | u1611TacoNWEingang[ch17]
+N53: u1611FunkAnalog#1635754961948349.EV1 | u1611TacoNWEingang[ch17]
+N54: u1611FunkAnalog#1635582673587133.EV1 | u1611TacoNWEingang[ch20]
+N55: u1611FunkAnalog#1635754961948349.EV2 | u1611TacoNWEingang[ch20]
+N56: u1611FunkAnalog#1635582678100768.EV1 | u1611TacoNWEingang[ch23]
+N57: u1611FunkAnalog#1635754961948349.EV3 | u1611TacoNWEingang[ch23]
+N58: u1611FunkHeizkreis#10211297.RT | u1611TacoSignal#None.In
+N59: u1611FunkLogik#11328897.EV1 | u1611TacoSignal#None.In
+N60: u1611FunkTimer#11217412.Fg | u1611TacoSignal#None.In
+N61: u1611FunkVergleich#1635142667404835.Fg | u1611TacoSignal#None.In
+N62: u1611FunkSchaltuhr#11321718.Stat | u1611TacoSignal#None.Out
+N63: u1611FunkTimer#11325631.Ausg | u1611TacoSignal#None.Out
+
+Gesamt-Netze: 63
+
+=== NAMED SIGNALS (8) ===
+SIG 'Abgas Holz AN'.Out: u1611FunkVergleich#11205958.Gr, u1611TacoSignal#None.Out
+SIG 'Abgas Holz AN'.In: u1611FunkZaehler#11313164.EV1, u1611TacoSignal#None.In
+SIG 'Abgas Holz AUS'.Out: u1611FunkVergleich#11205958.Kl, u1611TacoSignal#None.Out
+SIG 'Abgas Holz AUS'.In: u1611FunkLogik#11328897.EV1, u1611TacoSignal#None.In
+SIG 'Anorderung Ladepumpe Warmwasser'.Out: u1611FunkTimer#11325631.Ausg, u1611TacoSignal#None.Out
+SIG 'Anorderung Ladepumpe Warmwasser'.In: u1611FunkHeizkreis#10211297.Fg, u1611TacoSignal#None.In
+SIG 'Anorderung Ladepumpe Warmwasser'.In: u1611FunkVergleich#1635142667404835.Fg, u1611TacoSignal#None.In
+SIG 'Kein Urlaubsmodus'.Out: (keine Modul-Pins)
+SIG 'Kein Urlaubsmodus'.In: u1611FunkTimer#11217412.Fg, u1611TacoSignal#None.In
+SIG 'Kein Urlaubsmodus'.In: u1611FunkLogik#11115800.Fg, u1611TacoSignal#None.In
+SIG 'Nachlauf_Stroemung'.Out: u1611FunkTimer#11217412.Ausg, u1611TacoSignal#None.Out
+SIG 'Nachlauf_Stroemung'.In: u1611FunkLogik#11115800.EV2, u1611TacoSignal#None.In
+SIG 'RAS Min Temp'.Out: u1611FunkAnalog#1635754961948349.Erg, u1611TacoSignal#None.Out
+SIG 'RAS Min Temp'.In: u1611FunkHeizkreis#10211297.RT, u1611TacoSignal#None.In
+SIG 'WarmWasserAn'.In: u1611FunkAnfWW#11228837.Fg, u1611TacoSignal#None.In
+SIG 'WarmWasserAn'.Out: u1611FunkLogik#11328897.Erg, u1611TacoSignal#None.Out
+SIG 'Zirkulation_Timer'.Out: u1611FunkSchaltuhr#11321718.Stat, u1611TacoSignal#None.Out
+SIG 'Zirkulation_Timer'.In: u1611FunkLogik#11115800.EV3, u1611TacoSignal#None.In

@@ -1,0 +1,91 @@
+services:
+  cmi-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cmi-gateway:latest
+    container_name: cmi-gateway
+    restart: unless-stopped
+    ports:
+      - "30001:30001"
+    env_file:
+      - .env
+    environment:
+      # CMI is on the host LAN; make it reachable from the container.
+      CMI_BASE_URL: ${CMI_BASE_URL:-http://192.168.0.100}
+      # History-DB auf den Bind-Mount legen (default wuerde /srv/cmi/data im
+      # Image-Layer beschreiben -> Datenverlust bei jedem Rebuild).
+      HISTORY_DB_PATH: /data/history.db
+      # CMI-Log-Parquet-Store (S4N-LogParquet) ebenfalls auf den schreibbaren
+      # ./data-Bind legen: der Default (REPO_ROOT/data) laege im Image-Layer
+      # und wuerde bei jedem Rebuild verschwinden. winsol_pq bleibt strikt
+      # read-only (eigener ro-Bind), cmi_log_pq wird hier von der App
+      # geschrieben (laufender Monat, alle 5 min atomar).
+      CMI_LOG_PARQUET_DIR: /data/cmi_log_pq
+      # L2-Empfehlungs-Engine (S4N-UI-KI): Store + L1-Artefakt liegen auf den
+      # read-only Bind-Mounts (tiefer als der rw ./data-Bind, der gewinnt).
+      # Default (REPO_ROOT/data/features) laeg im Image-Layer -> explizit.
+      L1_STORE_DIR: /data/features
+      L1_MODEL_DIR: /srv/cmi/models/cmi-brain/v003
+      # L2 v0.2: CMI-Write-Discovery (INVENTAR.json) im ro-Mount; fehlt/
+      # ungueltig -> Fail-Closed (Advisory ohne Discovery-Bezug).
+      CMI_WRITE_INVENTAR: /srv/cmi/scripts/cmi_write_discovery/INVENTAR.json
+      # S3-1-Audit (schreibbar, auf dem rw ./data-Bind).
+      AUDIT_JSONL_PATH: /data/audit/change.jsonl
+      # CMI-/LOG-Poller (S4N-LogPoll): alle CMI_LOG_POLL_SEC (Default 300 s)
+      # /LOG-Index- + Datenfiles lesen und in den cmi_log_pq-Store schreiben.
+      # (604800 s war nur temporaer fuer den Digital-Toggle-Test vom
+      # 2026-10-30; der Test ist beendet.)
+      CMI_LOG_POLL_SEC: ${CMI_LOG_POLL_SEC:-300}
+      # READ-ONLY-Default: der Poller sendet NIEMALS /LOG/clear.log (wuerde
+      # den CMI-Buffer inkl. der aktiven, noch nicht indexierten Block-Datei
+      # loeschen -> Datenverlust; dokumentiert 2026-10-30). Buffer-Freigabe =
+      # manuell via WinSol-Fetch m. Delete (Benutzer-Verantwortung, siehe
+      # docs/cmi-log-protocol.md). true = experimentelles last-data-first
+      # Clear-Gate (nur wenn der CMI-Buffer per Gateway geleaert werden soll).
+      CMI_LOG_CLEAR: ${CMI_LOG_CLEAR:-false}
+      # Host-TZ (Europe/Berlin), damit datetime.now()-Stempel in history.db
+      # mit den Bestand-Rows (CET) und den WinSol-Timestamps (lokale
+      # Zeitebene) auf EINER Zeitachse liegen (Container-Default = UTC).
+      TZ: Europe/Berlin
+    volumes:
+      # Live-Operandsdaten (History-DB + Caches) hostseitig verwalten:
+      # ueberlebt docker-rebuilds und ist hostseitig inspizierbar. Die
+      # Bestands-DB (data/history.db, S2-1) wird hier direkt uebernommen.
+      # Ganzes Verzeichnis (nicht nur history.db), damit die SQLite
+      # -wal/-shm-Seitenfiles neben der Main-DB konsistent bleiben.
+      - ./data:/data
+      # WinSol-Parquet-Store strikt read-only, auch innerhalb des /data-Binds.
+      - ./data/winsol_pq:/data/winsol_pq:ro
+      # WinSol-Parquet-Store (read-only, on-demand-History) auf dem
+      # Default-Pfad, den die App liest (winsol_parquet_dir).
+      - ./data/winsol_pq:/srv/cmi/data/winsol_pq:ro
+      # L1-Feature-Store m1.3 (S4N-UI-KI, L2-Engine im Image): strikt
+      # read-only, auch INNERHALB des rw ./data-Binds -- der tiefer ro-Mount
+      # gewinnt (wie winsol_pq). App-Pfad: /data/features (Settings
+      # l1_store_dir, env-override L1_STORE_DIR). Host-Voraussetzung: das
+      # Verzeichnis existiert (docker compose exec cmi-gateway test -r
+      # /data/features; s. docs/l2-ui-panel.md).
+      - ./data/features:/data/features:ro
+      # L1-Artefakt-Root (S4N-UI-KI): /srv/cmi/models read-only.
+      # App-Pfad-Default: /srv/cmi/models/cmi-brain/v003 (Settings
+      # l1_model_dir, env-override L1_MODEL_DIR). Host-Voraussetzung:
+      # models/cmi-brain/v003 muss existieren (ro-Mount; Mount-Punkt wird
+      # im Image prae-creiert).
+      - ./models:/srv/cmi/models:ro
+      # L2 v0.2-Discovery (S3-1-Inventar): read-only, hostseitig gepflegt
+      # (scripts/, NICHT im Image). Fail-Closed ohne Mount: L2 emittiert
+      # Advisory-Labels ohne Discovery-Bezug, nie cmi-settable.
+      - ./scripts/cmi_write_discovery:/srv/cmi/scripts/cmi_write_discovery:ro
+    # Read-only against the CMI; no privileged mode needed.
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      # /api/v1/health liefert 503, wenn das CMI down ist -- das Gateway
+      # selbst laeuft dann. urlopen wirft bei >=400 (HTTPError), daher
+      # HTTPError abfangen und 503 als "Gateway ok, CMI down" werten.
+      test: ["CMD", "python", "-c", "import urllib.request,urllib.error,sys\ntry:\n    r=urllib.request.urlopen('http://127.0.0.1:30001/api/v1/health',timeout=5); sys.exit(0 if r.status in (200,503) else 1)\nexcept urllib.error.HTTPError as e:\n    sys.exit(0 if e.code in (200,503) else 1)\nexcept Exception:\n    sys.exit(1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s

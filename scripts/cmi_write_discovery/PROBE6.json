@@ -1,0 +1,24 @@
+{
+  "generated": "2026-11-02T08:53:08+01:00",
+  "note": "Read-only-Beobachtung: 6-8.cgi liefern 404 (CMI-Server-Error-Page). Eine 6. Schematic-Seite existiert NICHT und wurde NICHT angelegt. Die logische 'Seite 6' (KI-Einstellungen) ist ein Gateway-UI-Panel (S4N-UI-KI), kein CMI-Seiten-Upload.",
+  "results": {
+    "6": {
+      "path": "/schematic_files/6.cgi",
+      "status": 404,
+      "error": "CMI returned HTTP 404 for /schematic_files/6.cgi: '<head><title>CMI Server Error</title></head><body><h2>Error 404 - Not Found</h2>The requested URL was not found on this server.<hr><br><a title=\"www.ta.co.at\" target=\"_blank\" href=\"http://www.ta.co.at'",
+      "conclusion": "404 -- keine Seite"
+    },
+    "7": {
+      "path": "/schematic_files/7.cgi",
+      "status": 404,
+      "error": "CMI returned HTTP 404 for /schematic_files/7.cgi: '<head><title>CMI Server Error</title></head><body><h2>Error 404 - Not Found</h2>The requested URL was not found on this server.<hr><br><a title=\"www.ta.co.at\" target=\"_blank\" href=\"http://www.ta.co.at'",
+      "conclusion": "404 -- keine Seite"
+    },
+    "8": {
+      "path": "/schematic_files/8.cgi",
+      "status": 404,
+      "error": "CMI returned HTTP 404 for /schematic_files/8.cgi: '<head><title>CMI Server Error</title></head><body><h2>Error 404 - Not Found</h2>The requested URL was not found on this server.<hr><br><a title=\"www.ta.co.at\" target=\"_blank\" href=\"http://www.ta.co.at'",
+      "conclusion": "404 -- keine Seite"
+    }
+  }
+}

@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CMI Gateway</title>
+  <!-- TV-Modus + ?token=-Vorablage (S1): Inline-Script (kein Modul) im
+       <head> -- laeuft synchron, BEVOR die Module unten (deferred) starten.
+       ?tv=1 (1/true/yes) -> <html class="tv"> (10-Foot-CSS + D-pad-Navigation,
+       ki-Tab ausgeblendet, Read-only). ?token=<read> -> localStorage-Key
+       "cmi-gateway.read-token" (gleicher Key wie api.js), damit beim ersten
+       TV-Start kein Token-Overlay erscheint (kein Tippen per Fernbedienung).
+       Ohne tv=1 / ohne ?token: nichts tun (harmlos, Desktop unveraendert). -->
+  <script>
+    (function () {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const tv = params.get("tv");
+        if (tv === "1" || tv === "true" || tv === "yes") {
+          document.documentElement.classList.add("tv");
+        }
+        const token = params.get("token");
+        if (token) {
+          try {
+            localStorage.setItem("cmi-gateway.read-token", token);
+          } catch (e) {
+            /* localStorage nicht verfuegbar (z. B. Private Mode) -> No-Op */
+          }
+        }
+      } catch (e) {
+        /* TV-Modus ist Komfort-Feature: Parse-/Storage-Fehler duerfen die
+           UI niemals brechen (Desktop-Fallback bleibt intakt). */
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <!-- =================================================================== -->
+  <!-- Token-Overlay (S4-1): Read-Token abfragen, localStorage-cash        -->
+  <!-- =================================================================== -->
+  <div id="token-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="token-title">
+    <div class="overlay-card">
+      <h2 id="token-title">Read-Token erforderlich</h2>
+      <p>Bitte den Gateway-Read-Token aus <code>.env</code>
+        (<code>GATEWAY_READ_TOKEN</code>) eingeben. Der Token wird nur lokal
+        im Browser gespeichert (localStorage).</p>
+      <form id="token-form">
+        <input id="token-input" type="password" autocomplete="off"
+               placeholder="Read-Token" required>
+        <button type="submit">Anmelden</button>
+      </form>
+      <p id="token-error" class="token-error hidden" role="alert"
+         aria-live="assertive"></p>
+      <button id="token-cancel" class="linklike" type="button">Abbrechen</button>
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- KI-Apply-Dialog (S4N-UI-KI + S3-1): Two-Phase-Write bestaetigen     -->
+  <!-- (vor/nachher + optionales Write-Token + Bestaetigung)               -->
+  <!-- =================================================================== -->
+  <div id="ki-apply-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ki-apply-title">
+    <div class="overlay-card ki-apply-card">
+      <h2 id="ki-apply-title">Änderung bestätigen</h2>
+      <p id="ki-apply-what" class="ki-apply-what"></p>
+      <div id="ki-apply-params" class="ki-apply-params"></div>
+      <p class="ki-apply-warn">
+        Achtung: echte Betriebsänderung an der CMI (Whitelist-Adresse,
+        Read-back + Audit). Der Read-Token reicht NICHT — der Write-Token
+        (<code>GATEWAY_WRITE_TOKEN</code> aus <code>.env</code>) wird zusätzlich
+        abgefragt. Der Confirmation-Hash ist 15 min gültig (idempotent im Fenster).
+      </p>
+      <form id="ki-apply-form">
+        <label class="ki-apply-label" for="ki-apply-writetoken">
+          Write-Token <input id="ki-apply-writetoken" type="password" autocomplete="off" placeholder="GATEWAY_WRITE_TOKEN" required>
+        </label>
+        <p id="ki-apply-error" class="token-error hidden" role="alert" aria-live="assertive"></p>
+        <p id="ki-apply-ok" class="ki-apply-ok hidden" role="status"></p>
+        <div class="ki-apply-actions">
+          <button id="ki-apply-cancel" class="btn-ghost" type="button">Abbrechen</button>
+          <button id="ki-apply-confirm" class="btn-primary" type="submit">Schreiben (S3-1)</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="app" data-app="cmi-gateway-ui">
+    <!-- ================================================================= -->
+    <!-- Header: Status-LEDs + letzte Aktualisierung + Token-Wechsel      -->
+    <!-- ================================================================= -->
+    <header id="topbar">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <h1>CMI Gateway</h1>
+      </div>
+      <div id="status-chips" class="chips" aria-live="polite">
+        <span class="chip chip-muted" data-chip="cmi">CMI&nbsp;…</span>
+        <span class="chip chip-muted" data-chip="winsol">WinSol&nbsp;…</span>
+      </div>
+      <div class="topbar-right">
+        <span id="last-updated" class="muted" title="Letzte Aktualisierung">–</span>
+        <span id="refresh-info" class="muted" title="Auto-Refresh-Intervall"></span>
+        <button id="token-btn" class="btn-ghost" type="button"
+                title="Read-Token ändern">Token</button>
+      </div>
+    </header>
+
+    <!-- ================================================================= -->
+    <!-- Tab-Navigation (S4N-2 + S4N-UI-KI): 4 Tabs — Start (Dashboard),  -->
+    <!-- Anlage ★ (5 Loop-Views + Gesamt), KI ★ (L2-Empfehlungen,        -->
+    <!-- S4N-UI-KI "Seite 6"), Historie                                    -->
+    <!-- ================================================================= -->
+    <nav id="tabs" role="tablist" aria-label="Ansichten">
+      <button class="tab" data-page="start" role="tab">Start</button>
+      <button class="tab active" data-page="anlage" role="tab">Anlage&nbsp;★</button>
+      <button class="tab tab-ki" data-page="ki" role="tab">KI&nbsp;★</button>
+      <button class="tab tab-history" data-page="history" role="tab">Historie</button>
+    </nav>
+
+    <main id="pages">
+      <!-- ============================================================== -->
+      <!-- Start (Dashboard, S4-1): CMI-Status + Modus + Kernwerte        -->
+      <!-- ============================================================== -->
+      <section class="page" data-page="start" aria-label="Start">
+        <section id="dashboard" aria-label="Dashboard">
+          <div class="dash-grid">
+            <div class="card card-wide" data-card="status">
+              <div class="card-title">CMI-Status</div>
+              <div id="status-detail" class="status-detail">
+                <span class="muted">lädt …</span>
+              </div>
+            </div>
+            <div class="card card-mode" data-card="modus">
+              <div class="card-title">Betriebsmodus</div>
+              <div class="bigvalue modus-value" id="dash-modus">–</div>
+            </div>
+            <div class="card" data-card="aussen">
+              <div class="card-title">Außen</div>
+              <div class="bigvalue"><span data-v="aussen">–</span><span class="unit" data-u="aussen"></span></div>
+            </div>
+            <div class="card" data-card="speicher-oben">
+              <div class="card-title">Speicher oben</div>
+              <div class="bigvalue"><span data-v="speicher-oben">–</span><span class="unit" data-u="speicher-oben"></span></div>
+            </div>
+            <div class="card" data-card="speicher-mitte">
+              <div class="card-title">Speicher mitte</div>
+              <div class="bigvalue"><span data-v="speicher-mitte">–</span><span class="unit" data-u="speicher-mitte"></span></div>
+            </div>
+            <div class="card" data-card="speicher-unten">
+              <div class="card-title">Speicher unten</div>
+              <div class="bigvalue"><span data-v="speicher-unten">–</span><span class="unit" data-u="speicher-unten"></span></div>
+            </div>
+            <div class="card" data-card="warmwasser">
+              <div class="card-title">Warmwasser</div>
+              <div class="bigvalue"><span data-v="warmwasser">–</span><span class="unit" data-u="warmwasser"></span></div>
+            </div>
+            <div class="card" data-card="vl">
+              <div class="card-title">Heizkreis VL</div>
+              <div class="bigvalue"><span data-v="vl">–</span><span class="unit" data-u="vl"></span></div>
+            </div>
+            <div class="card" data-card="keller">
+              <div class="card-title">Raum Keller</div>
+              <div class="bigvalue"><span data-v="keller">–</span><span class="unit" data-u="keller"></span></div>
+            </div>
+            <div class="card" data-card="eg">
+              <div class="card-title">Raum EG</div>
+              <div class="bigvalue"><span data-v="eg">–</span><span class="unit" data-u="eg"></span></div>
+            </div>
+            <div class="card" data-card="dg">
+              <div class="card-title">Raum DG</div>
+              <div class="bigvalue"><span data-v="dg">–</span><span class="unit" data-u="dg"></span></div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- Anlage (S4N-2): Loop-Views A–E + Gesamt (Pills), Live-SVG +     -->
+      <!-- 24h-Chart pro Loop (Q-12), Modus-Badge, Demo-Badge, Anim-Schalter -->
+      <!-- ============================================================== -->
+      <section class="page active" data-page="anlage" aria-label="Anlage">
+        <div class="loop-toolbar">
+          <div id="loop-pills" role="tablist" aria-label="Loop-Selektor"></div>
+          <div class="loop-toolbar-right">
+            <span id="loop-mode-badge" class="chip chip-warn hidden" title="Betriebsmodus (C1, R-X4)"></span>
+            <span id="loop-demo-badge" class="chip chip-err hidden">Demo-Daten</span>
+            <button id="loop-anim-btn" class="btn-ghost" type="button"
+                    title="Animation: Wasser-Flow, Pumpen-Rotation, Ventile (Q-13)">Animation: an</button>
+          </div>
+        </div>
+
+        <div class="loop-card">
+          <div class="loop-head">
+            <div>
+              <h2 id="loop-title">–</h2>
+              <p id="loop-desc" class="muted small"></p>
+            </div>
+            <div id="loop-status" class="loop-status" aria-live="polite"></div>
+          </div>
+
+          <div id="loop-svg-host" class="loop-svg-host" data-loop=""></div>
+
+          <div id="loop-settable" class="loop-settable"></div>
+
+          <div id="loop-chart-area" class="loop-chart-area">
+            <div class="chart-wrap loop-chart-wrap">
+              <canvas id="loop-canvas" width="900" height="340"
+                      aria-label="24h-Chart des aktiven Loops" role="img"></canvas>
+              <div id="loop-chart-loading" class="chart-status hidden">lädt …</div>
+              <div id="loop-chart-error" class="chart-status chart-error hidden"></div>
+            </div>
+            <p id="loop-chart-hint" class="muted small"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- KI (S4N-UI-KI): L2 v0.5 Empfehlungen aus /api/v1/recommend      -->
+      <!-- (logische "Seite 6": ΔT-Diagnose + Minderer + O8 + Zone-Karten -->
+      <!--  + Tier-B-Advisorys + Stale; Modellversion live im #ki-ctx)    -->
+      <!-- ============================================================== -->
+      <section class="page" data-page="ki" id="page-ki" aria-label="KI">
+        <div id="ki-head" class="ki-head">
+          <div class="ki-head-left">
+            <h2 id="ki-title">KI-Empfehlungen</h2>
+            <p id="ki-sub" class="muted small">
+              L2 v0.5 (RAS-Offsets · Minderer · O8 · Heizkurve) · 12-h-Horizont ·
+              Advisory — Änderungen immer manuell (HITL).
+            </p>
+          </div>
+          <div class="ki-head-right">
+            <span id="ki-stale-badge" class="chip chip-warn hidden">stale</span>
+            <span id="ki-ctx" class="muted small"></span>
+            <button id="ki-refresh-btn" class="btn-ghost" type="button"
+                    title="Zwangs-Neulauf (force=true) + 15-s-Burst-Sperre">Jetzt aktualisieren</button>
+          </div>
+        </div>
+
+        <div id="ki-error" class="ki-error hidden" role="alert"></div>
+
+        <div id="ki-loading" class="ki-loading">lädt Empfehlungen … (erster Lauf kann &gt;10 s dauern)</div>
+
+        <div id="ki-content" class="ki-content hidden">
+          <div id="ki-diagnostics" class="ki-diagnostics hidden"></div>
+
+          <div id="ki-minderer" class="ki-minderer hidden"></div>
+
+          <div id="ki-pump" class="ki-pump hidden"></div>
+
+          <h3 class="ki-h">Tier A — RAS-Offset je Zone (stündlich)</h3>
+          <div id="ki-zones" class="ki-grid"></div>
+
+          <h3 class="ki-h">Tier B — Advisory (Heizkurve / WW / Zirkulation)</h3>
+          <div id="ki-advisory" class="ki-advisory"></div>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- Historie (S4-3): Chart.js + Zoom                                -->
+      <!-- ============================================================== -->
+      <section class="page" data-page="history" aria-label="Historie">
+        <div id="history-controls" class="hist-controls">
+          <div class="hist-row">
+            <label class="field">
+              <span>Gerät</span>
+              <select id="hist-device">
+                <option value="winsol:0">winsol:0 – Heizung</option>
+                <option value="winsol:1" selected>winsol:1 – RAS-Räume</option>
+                <option value="winsol:2">winsol:2 – Solar</option>
+                <option value="json:32">json:32 – CMI-Logger (UVR610)</option>
+                <option value="schematic">schematic – Live-Polling</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Zeitraum</span>
+              <select id="hist-range">
+                <option value="24" selected>letzte 24 h</option>
+                <option value="168">letzte 7 Tage</option>
+                <option value="720">letzte 30 Tage</option>
+                <option value="8760">letzte 365 Tage</option>
+                <option value="custom">eigene</option>
+              </select>
+            </label>
+            <label class="field" id="hist-start-wrap" hidden>
+              <span>Start</span>
+              <input type="date" id="hist-start">
+            </label>
+            <label class="field" id="hist-end-wrap" hidden>
+              <span>Ende</span>
+              <input type="date" id="hist-end">
+            </label>
+            <label class="field">
+              <span>Auswertung</span>
+              <select id="hist-agg">
+                <option value="last" selected>letzte (last)</option>
+                <option value="min">Minimum</option>
+                <option value="max">Maximum</option>
+                <option value="avg">Mittel (avg)</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Bucket (s)</span>
+              <input type="number" id="hist-interval" value="900" min="10" max="604800" step="10">
+            </label>
+            <button id="hist-query" class="btn-primary" type="button">Abfragen</button>
+            <button id="hist-zoom-reset" class="btn-ghost" type="button"
+                    title="Zoom zurücksetzen">Zoom&nbsp;↺</button>
+          </div>
+          <details id="hist-channels-details" open>
+            <summary>Kanäle wählen (max. 3, gleiches Gerät)</summary>
+            <div id="hist-channels" class="channel-list"></div>
+          </details>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="history-canvas" width="900" height="420"
+                  aria-label="Historie-Chart" role="img"></canvas>
+          <div id="chart-loading" class="chart-status hidden">lädt …</div>
+          <div id="chart-error" class="chart-status chart-error hidden"></div>
+        </div>
+        <p id="hist-hint" class="muted small">
+          WinSol: 10-Sekunden-Abtastung (2020–2026) ·
+          Zoom: Ziehen (Rechteck) oder Mausrad · Reset über Button.
+        </p>
+      </section>
+    </main>
+
+    <footer id="footer">
+      <span class="muted">Gateway läuft · Auto-Refresh</span>
+      <span class="muted">API: <a href="/docs">/docs</a> · /api/v1/state · /api/v1/history</span>
+    </footer>
+  </div>
+
+  <!-- Chart.js + Zoom-Plugin + Hammer (vendored, kein CDN) -->
+  <script src="/vendor/hammer.min.js"></script>
+  <script src="/vendor/chart.umd.js"></script>
+  <script src="/vendor/chartjs-plugin-zoom.min.js"></script>
+  <script type="module" src="/js/ki.js"></script>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

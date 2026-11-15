@@ -1,0 +1,256 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     viewBox="0 0 1200 800" style="color:#e6edf7">
+  <!-- ==================================================================
+       P&ID-Symbol-Bibliothek — CMI-UI (TA CMI, Heizungsanlage)
+       Basis: DIN EN ISO 10628-1 (P&ID) + branchenuebliche Haustechnik-Symbole
+
+       Verwendung:
+         <use href="#pid-pump-cent" x="400" y="200"/>
+       - Jedes Symbol ist um (0,0) zentriert (lokal: +x = rechts/Vorlauf, -y = oben).
+       - Farbneutral: alle Linien verwenden currentColor (Stroke-Basis,
+         fill:none, stroke-width 1.5-2). Aufrufer faerbt ueber CSS-Farbprofil:
+           .pid-vl  { color:#f59e0b }  (VL amber)
+           .pid-rl  { color:#4da3ff }  (RL blau)
+           .pid-ww  { color:#38bdf8 }  (WW cyan)
+           .pid-gas { color:#94a3b8 }  (Abgas)
+           .pid-ctl { color:#a78bfa }  (Steuer)
+       - Labels werden vom Aufrufer gesetzt. Technische Kennziffern
+         (Q, T, F, 0-10 V) sind P&ID-ueblich und Teil des Symbols.
+       - Anschlusspunkte: +x/-x = Prozess-Leitung, -y = oben (Flue/Probe/Stiel).
+       - Doku: docs/pid-symbols.md
+       ================================================================== -->
+  <style>
+    .pid { fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+    .pid-t { fill:currentColor; stroke:none; font-family:system-ui, sans-serif; font-size:11px; font-weight:600; text-anchor:middle; }
+    .pid-demo-bg   { fill:#ffffff; }
+    .pid-demo-title{ fill:#1e293b; font-family:system-ui, sans-serif; font-size:17px; font-weight:700; }
+    .pid-demo-note { fill:#475569; font-family:system-ui, sans-serif; font-size:12px; }
+    .pid-demo-lbl  { fill:#334155; font-family:system-ui, sans-serif; font-size:12px; text-anchor:middle; }
+  </style>
+
+  <defs>
+    <!-- 01 Kreiselpumpe (O1,O2,O6,O7,O8,SV) — P&ID: Kreis, Saug-/Druckseite,
+         Impeller-Pfeil, Kennziffer Q -->
+    <g id="pid-pump-cent">
+      <circle class="pid" r="13"/>
+      <path class="pid" d="M0,7 L0,-5 M0,-5 L-4.5,3 M0,-5 L4.5,3"/>
+      <path d="M-13,0 L-20,0 M13,0 L20,0" class="pid"/>
+      <text class="pid-t" x="0" y="19">Q</text>
+    </g>
+
+    <!-- 02 2-Wege-Ventil (O9) — ISO 10628 Schmetterlingskoerper (Sattel),
+         Stiel oben, Stielett = A/Z-Ventil -->
+    <g id="pid-valve-2way">
+      <path class="pid" d="M-13,-10 L0,0 L-13,10 Z M13,-10 L0,0 L13,10 Z"/>
+      <line class="pid" x1="0" y1="0" x2="0" y2="-15"/>
+      <circle class="pid" cx="0" cy="-18" r="3"/>
+      <path d="M-20,0 L-13,0 M13,0 L20,0" class="pid"/>
+    </g>
+
+    <!-- 03 3-Wege-Ventil / Mischer (O3/O4) — ISO 10628 3-Wege-Koerper:
+         horizontaler Schmetterling + senkrechter Schenkel (Einmueschung) -->
+    <g id="pid-valve-3way">
+      <path class="pid" d="M-12,-9 L0,0 L-12,9 Z M12,-9 L0,0 L12,9 Z"/>
+      <line class="pid" x1="0" y1="0" x2="0" y2="12"/>
+      <path d="M-20,0 L-12,0 M12,0 L20,0" class="pid"/>
+      <path d="M0,12 L0,20" class="pid"/>
+    </g>
+
+    <!-- 04 Ventil mit Aktor (0-10 V) — Schmetterlingskoerper + Stiel +
+         Aktor-Kasten mit Kennzeichnung -->
+    <g id="pid-valve-actuator">
+      <path class="pid" d="M-13,-10 L0,0 L-13,10 Z M13,-10 L0,0 L13,10 Z"/>
+      <line class="pid" x1="0" y1="0" x2="0" y2="-15"/>
+      <rect class="pid" x="-17" y="-35" width="34" height="17" rx="3"/>
+      <text class="pid-t" x="0" y="-24" font-size="9">0–10 V</text>
+      <path d="M-20,0 L-13,0 M13,0 L20,0" class="pid"/>
+    </g>
+
+    <!-- 05 Kugelhahn/Spindelventil (absperrend, z.B. O9-Entscheidung) —
+         ISO 10628 + Handhebel (Kippstiel), A/Z -->
+    <g id="pid-valve-globe">
+      <path class="pid" d="M-13,-10 L0,0 L-13,10 Z M13,-10 L0,0 L13,10 Z"/>
+      <line class="pid" x1="0" y1="0" x2="0" y2="-13"/>
+      <circle class="pid" cx="0" cy="-17" r="4"/>
+      <line class="pid" x1="0" y1="-17" x2="12" y2="-22"/>
+      <path d="M-20,0 L-13,0 M13,0 L20,0" class="pid"/>
+    </g>
+
+    <!-- 06 Rohrbund-/Rohrwuerfel-Waermetauscher (P&ID: zwei Kreise mit
+         Diagonale = Rohrbund; sekundaeerer/dritter Strang) -->
+    <g id="pid-heatex-shell">
+      <circle class="pid" cx="-13" cy="0" r="11"/>
+      <line class="pid" x1="-21.5" y1="-8" x2="-4.5" y2="8"/>
+      <circle class="pid" cx="13" cy="0" r="11"/>
+      <line class="pid" x1="4.5" y1="8" x2="21.5" y2="-8"/>
+      <path d="M-30,0 L-24,0 M24,0 L30,0 M0,0 L0,9 M0,12 L0,20" class="pid"/>
+    </g>
+
+    <!-- 07 Platten-Waermetauscher (ISO 10628: zwei S-Formen ueber
+         Trennlinie; hier horizontal ausgefuehrt) -->
+    <g id="pid-heatex-plate">
+      <line class="pid" x1="0" y1="-14" x2="0" y2="14"/>
+      <path class="pid" d="M-28,-6 C-18,-15 -9,4 0,-4"/>
+      <path class="pid" d="M28,-6 C18,-15 9,4 0,-4"/>
+      <path class="pid" d="M-28,8 C-18,-1 -9,18 0,9"/>
+      <path class="pid" d="M28,8 C18,-1 9,18 0,9"/>
+      <path d="M-35,0 L-28,0 M28,0 L35,0" class="pid"/>
+    </g>
+
+    <!-- 08 Pufferspeicher P (vertikaler Behaelter, Zonen-Scheiden,
+         Füllstands-Kennzeichnung gestrichelt) -->
+    <g id="pid-tank-buffer">
+      <rect class="pid" x="-30" y="-60" width="60" height="120" rx="12"/>
+      <line class="pid" x1="-30" y1="-20" x2="30" y2="-20"/>
+      <line class="pid" x1="-30" y1="20" x2="30" y2="20"/>
+      <path class="pid" d="M-30,42 L30,42 M-16,38 L-16,46 M16,38 L16,46" stroke-width="1.4" stroke-dasharray="5 4"/>
+      <path d="M0,-68 L0,-76 M0,68 L0,76" class="pid"/>
+    </g>
+
+    <!-- 09 Oelkessel mit Brenner (H2) — Kessel + untere Brennereinheit
+         mit Brennstoff-Zufuhr; Abgas-Stummel oben -->
+    <g id="pid-boiler-oil">
+      <rect class="pid" x="-28" y="-26" width="56" height="52" rx="4"/>
+      <line class="pid" x1="-28" y1="-8" x2="28" y2="-8"/>
+      <path d="M0,-32 L0,-40 M0,-44 L-4,-38 L4,-38 Z" class="pid"/>
+      <circle class="pid" cx="0" cy="24" r="5"/>
+      <path d="M0,24 L0,17 M0,17 L-3,22 M0,17 L3,22" class="pid"/>
+      <line class="pid" x1="-14" y1="40" x2="-4" y2="32"/>
+    </g>
+
+    <!-- 10 Festbrennstoff-/Holzkessel (H1) — Kessel + Feuerungsraum
+         mit Feuerungsholz; Abgas-Stummel oben -->
+    <g id="pid-boiler-solid">
+      <rect class="pid" x="-28" y="-30" width="56" height="50" rx="4"/>
+      <rect class="pid" x="-19" y="20" width="38" height="16" rx="2"/>
+      <circle class="pid" cx="0" cy="28" r="4.5"/>
+      <circle cx="0" cy="28" r="1.2" fill="currentColor" stroke="none"/>
+      <line class="pid" x1="-28" y1="-10" x2="28" y2="-10"/>
+      <path d="M0,-36 L0,-44 M0,-48 L-4,-42 L4,-42 Z" class="pid"/>
+    </g>
+
+    <!-- 11 Solar-Kollektor (H3) — Rohr-Kollektor: Waermenroehr mit
+         Schlauchspiral-Kennzeichnung (branchenueblich) -->
+    <g id="pid-collector-solar">
+      <rect class="pid" x="-34" y="-14" width="68" height="28" rx="12"/>
+      <path class="pid" d="M-26,4 C-21,-6 -17,-6 -12,4 C-7,14 -3,14 2,4 C7,-6 11,-6 16,4 C21,14 25,14 28,8" stroke-width="1.5"/>
+      <path d="M-41,0 L-34,0 M34,0 L41,0" class="pid"/>
+    </g>
+
+    <!-- 12 PT-Fuehler / Temperatur (P&ID-Messkreis mit T + Mess-Element) -->
+    <g id="pid-pt">
+      <circle class="pid" r="8"/>
+      <text class="pid-t" x="0" y="3.5" font-size="10">T</text>
+      <line class="pid" x1="0" y1="8" x2="0" y2="16"/>
+    </g>
+
+    <!-- 13 Stromungsschalter (a16 WW-Zirk) — P&ID-Schaltkreis:
+         Knauf mit Schwimmer-Punkt + Kennziffer F; binare Auswertung -->
+    <g id="pid-flow-switch">
+      <circle class="pid" r="8"/>
+      <text class="pid-t" x="0" y="-1" font-size="9">F</text>
+      <line class="pid" x1="0" y1="3" x2="0" y2="5.5"/>
+      <circle cx="0" cy="6.5" r="1.8" fill="currentColor" stroke="none"/>
+      <line class="pid" x1="0" y1="8" x2="0" y2="16"/>
+    </g>
+
+    <!-- 14 Heizkoerper (R1/R2/R3) — Rippen-Box, Anschluesse horizontal
+         (branchenuebliches Haustechnik-Symbol) -->
+    <g id="pid-radiator">
+      <rect class="pid" x="-22" y="-13" width="44" height="26" rx="4"/>
+      <line class="pid" x1="-13" y1="-13" x2="-13" y2="13"/>
+      <line class="pid" x1="-4.5" y1="-13" x2="-4.5" y2="13"/>
+      <line class="pid" x1="4.5" y1="-13" x2="4.5" y2="13"/>
+      <line class="pid" x1="13" y1="-13" x2="13" y2="13"/>
+      <path d="M-30,0 L-22,0 M22,0 L30,0" class="pid"/>
+    </g>
+
+    <!-- 15 Drossel-/Ruecklaufminderer (RM1/2/3) — Koerper mit Kegel +
+         0-10 V-Aktor (Kegel + Durchflusskennlinie, 0-10 V gesteuert) -->
+    <g id="pid-throttle">
+      <path class="pid" d="M-13,-10 L0,0 L-13,10 Z M13,-10 L0,0 L13,10 Z"/>
+      <path d="M-4,0 L0,-4 L4,0" class="pid"/>
+      <line class="pid" x1="0" y1="0" x2="0" y2="-12"/>
+      <rect class="pid" x="-15" y="-30" width="30" height="15" rx="3"/>
+      <text class="pid-t" x="0" y="-20" font-size="8">0–10 V</text>
+      <path d="M-20,0 L-13,0 M13,0 L20,0" class="pid"/>
+    </g>
+
+    <!-- 16 Schornstein/Abgas (E1) — vertikale Kamin-Form mit Kappe +
+         Abgas-Pfeil nach oben -->
+    <g id="pid-chimney">
+      <rect class="pid" x="-9" y="-34" width="18" height="68"/>
+      <rect class="pid" x="-14" y="-40" width="28" height="6"/>
+      <path d="M18,26 L18,0 M18,-4 L13.5,4 L22.5,4 Z" class="pid"/>
+    </g>
+
+    <!-- 17 Zapfstelle/Entnahmepunkt (WW) — kleiner Kreis auf der Leitung,
+         Entnahme nach aussen (abwaerts) mit Pfeil -->
+    <g id="pid-tap">
+      <path d="M-14,0 L-7,0 M7,0 L14,0" class="pid"/>
+      <circle class="pid" r="7"/>
+      <line class="pid" x1="0" y1="7" x2="0" y2="17"/>
+      <path d="M0,23 L-4,16 L4,16 Z" class="pid"/>
+    </g>
+
+    <!-- 18 Mischer-Knoten / RL-Mischung — P&ID-Verbindungspunkt (fester
+         Kreis) + Wirbel-Pfeil (Mischung), zentraler RL vor O9 -->
+    <g id="pid-mixing">
+      <path d="M-14,0 L-5,0 M5,0 L14,0 M0,-14 L0,-5 M0,14 L0,5" class="pid"/>
+      <circle cx="0" cy="0" r="4.5" fill="currentColor" stroke="none"/>
+      <path d="M-5,-6.5 A7.5,7.5 0 0 1 5,-6.5" class="pid"/>
+      <path d="M5,-6.5 L8.5,-10 L2.2,-9.2 Z" class="pid"/>
+    </g>
+  </defs>
+
+  <!-- ============================ DEMO-FRAME ============================
+       Rendering-Pruefung: 18 Symbole via <use href="#pid-...">,
+       6x3-Raster. Farbprofiel per inline color/currentColor demonstriert. -->
+  <g id="pid-demo">
+    <rect class="pid-demo-bg" x="0" y="0" width="1200" height="430"/>
+    <text class="pid-demo-title" x="30" y="34">P&amp;ID-Symbol-Bibliothek — CMI-UI (18 Symbole, &lt;use href="#pid-...&gt;)</text>
+    <text class="pid-demo-note" x="30" y="54">Farbprofil via CSS: .pid-vl{color:#f59e0b} .pid-rl{color:#4da3ff} .pid-ww{color:#38bdf8} .pid-gas{color:#94a3b8} .pid-ctl{color:#a78bfa} — Symbole vererben currentColor</text>
+
+    <!-- Reihe 1 -->
+    <use href="#pid-pump-cent" xlink:href="#pid-pump-cent" x="100" y="150"/>
+    <text class="pid-demo-lbl" x="100" y="208">pid-pump-cent · Q</text>
+    <use href="#pid-valve-2way" xlink:href="#pid-valve-2way" x="300" y="150"/>
+    <text class="pid-demo-lbl" x="300" y="208">pid-valve-2way</text>
+    <use href="#pid-valve-3way" xlink:href="#pid-valve-3way" x="500" y="145"/>
+    <text class="pid-demo-lbl" x="500" y="208">pid-valve-3way</text>
+    <use href="#pid-valve-actuator" xlink:href="#pid-valve-actuator" x="700" y="158"/>
+    <text class="pid-demo-lbl" x="700" y="208">pid-valve-actuator</text>
+    <use href="#pid-valve-globe" xlink:href="#pid-valve-globe" x="900" y="152"/>
+    <text class="pid-demo-lbl" x="900" y="208">pid-valve-globe</text>
+    <use href="#pid-heatex-shell" xlink:href="#pid-heatex-shell" x="1100" y="145"/>
+    <text class="pid-demo-lbl" x="1100" y="208">pid-heatex-shell</text>
+
+    <!-- Reihe 2 -->
+    <use href="#pid-heatex-plate" xlink:href="#pid-heatex-plate" x="100" y="310"/>
+    <text class="pid-demo-lbl" x="100" y="358">pid-heatex-plate</text>
+    <use href="#pid-tank-buffer" xlink:href="#pid-tank-buffer" x="300" y="305"/>
+    <text class="pid-demo-lbl" x="300" y="358">pid-tank-buffer</text>
+    <use href="#pid-boiler-oil" xlink:href="#pid-boiler-oil" x="500" y="305"/>
+    <text class="pid-demo-lbl" x="500" y="358">pid-boiler-oil</text>
+    <use href="#pid-boiler-solid" xlink:href="#pid-boiler-solid" x="700" y="305"/>
+    <text class="pid-demo-lbl" x="700" y="358">pid-boiler-solid</text>
+    <use href="#pid-collector-solar" xlink:href="#pid-collector-solar" x="900" y="310"/>
+    <text class="pid-demo-lbl" x="900" y="358">pid-collector-solar</text>
+    <use href="#pid-pt" xlink:href="#pid-pt" x="1100" y="312"/>
+    <text class="pid-demo-lbl" x="1100" y="358">pid-pt · T</text>
+
+    <!-- Reihe 3 (Farbprofil-Demo: VL amber / RL blau / WW cyan / Abgas grau / Steuer lila) -->
+    <use href="#pid-flow-switch" xlink:href="#pid-flow-switch" x="100" y="412" style="color:#475569"/>
+    <text class="pid-demo-lbl" x="100" y="428">pid-flow-switch · F</text>
+    <use href="#pid-radiator" xlink:href="#pid-radiator" x="300" y="412" style="color:#f59e0b"/>
+    <text class="pid-demo-lbl" x="300" y="428">pid-radiator (VL)</text>
+    <use href="#pid-throttle" xlink:href="#pid-throttle" x="500" y="420" style="color:#a78bfa"/>
+    <text class="pid-demo-lbl" x="500" y="428">pid-throttle (Steuer)</text>
+    <use href="#pid-chimney" xlink:href="#pid-chimney" x="700" y="410" style="color:#94a3b8"/>
+    <text class="pid-demo-lbl" x="700" y="428">pid-chimney (Abgas)</text>
+    <use href="#pid-tap" xlink:href="#pid-tap" x="900" y="412" style="color:#38bdf8"/>
+    <text class="pid-demo-lbl" x="900" y="428">pid-tap (WW)</text>
+    <use href="#pid-mixing" xlink:href="#pid-mixing" x="1100" y="412" style="color:#4da3ff"/>
+    <text class="pid-demo-lbl" x="1100" y="428">pid-mixing (RL)</text>
+  </g>
+</svg>

@@ -1,0 +1,365 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2200 1500" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
+  <style>
+    .bg { fill:#0b1220; }
+    .box { fill:#121d38; stroke:#243250; stroke-width:1.5; rx:10; }
+    .box-hi { fill:#16234566; stroke:#2b6cb0; stroke-width:1.5; }
+    .txt { fill:#e6edf7; font-size:14px; }
+    .txt-s { fill:#8fa0bd; font-size:12px; }
+    .txt-t { fill:#e6edf7; font-size:21px; font-weight:600; }
+    .txt-h { fill:#e6edf7; font-size:15px; font-weight:600; }
+    .txt-addr { fill:#4da3ff; font-size:12px; }
+    .txt-risk { fill:#f87171; font-size:13px; font-weight:600; }
+    .txt-c { fill:#a78bfa; font-size:12px; }
+    .vl { stroke:#f59e0b; stroke-width:3; fill:none; }
+    .rl { stroke:#4da3ff; stroke-width:3; fill:none; }
+    .ww { stroke:#38bdf8; stroke-width:3; fill:none; }
+    .gas { stroke:#94a3b8; stroke-width:2.5; fill:none; }
+    .ctl { stroke:#a78bfa; stroke-width:1.5; stroke-dasharray:6 4; fill:none; }
+    .sym { fill:none; stroke:#e6edf7; stroke-width:2; }
+    .sym-acc { fill:none; stroke:#4da3ff; stroke-width:2; }
+    .pt { fill:#0b1220; stroke:#fbbf24; stroke-width:1.5; }
+    .arrow-vl { fill:#f59e0b; }
+    .arrow-rl { fill:#4da3ff; }
+    .arrow-ww { fill:#38bdf8; }
+    .arrow-gas { fill:#94a3b8; }
+  </style>
+  <defs>
+    <marker id="av-vl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-vl"/></marker>
+    <marker id="av-rl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-rl"/></marker>
+    <marker id="av-ww" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-ww"/></marker>
+    <marker id="av-gas" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-gas"/></marker>
+    <marker id="av-ctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#a78bfa"/></marker>
+    <!-- Kreiselpumpe -->
+    <g id="sym-pump"><circle r="13" class="sym"/><circle r="6" class="sym"/><path d="M0,-6 L5,-12 L2,-12 L0,-6" fill="#e6edf7"/></g>
+    <!-- 2/3-Wege-Ventil -->
+    <g id="sym-valve"><path d="M-12,0 L0,-9 L0,9 z" class="sym"/><path d="M12,0 L0,-9 L0,9 z" class="sym"/><circle cx="0" cy="0" r="3" fill="#0b1220" stroke="#e6edf7"/></g>
+    <!-- PT-Fuehler -->
+    <g id="sym-pt"><circle r="5" class="pt"/></g>
+    <!-- Heizkoerper -->
+    <g id="sym-rad"><rect x="-26" y="-14" width="52" height="28" rx="4" class="sym"/><line x1="-15" y1="-14" x2="-15" y2="14" class="sym"/><line x1="-5" y1="-14" x2="-5" y2="14" class="sym"/><line x1="5" y1="-14" x2="5" y2="14" class="sym"/><line x1="15" y1="-14" x2="15" y2="14" class="sym"/></g>
+    <!-- Waermetauscher (Rohrbund) -->
+    <g id="sym-heatex"><rect x="-40" y="-24" width="80" height="48" rx="22" class="sym"/><path d="M-30,-10 C-15,-22 15,22 30,-10 M-30,10 C-15,-22 15,22 30,10" class="sym-acc"/></g>
+    <!-- Schornstein -->
+    <g id="sym-chimney"><rect x="-20" y="-80" width="40" height="80" class="sym"/><rect x="-26" y="-86" width="52" height="8" class="sym"/></g>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="2200" height="1500"/>
+
+  <!-- ============================ TITEL ============================ -->
+  <rect class="box" x="40" y="24" width="760" height="64" rx="10"/>
+  <text class="txt-t" x="56" y="52">TA Example-Street 1 — Hydraulikschaltplan</text>
+  <text class="txt-s" x="56" y="76">statisch V6.3 · nicht maßstäblich · Quelle: docs/hydraulic-topology.md (FINAL nach maintainer, 2026-10-28; WW-Modus, Paare getrennt, H1-2-Sensoren, Korr. 2026-10-29)</text>
+
+  <!-- ============================ LEGENDE ============================ -->
+  <rect class="box" x="1800" y="24" width="360" height="240" rx="10"/>
+  <text class="txt-h" x="1820" y="50">Legende</text>
+  <line x1="1820" y1="66" x2="1870" y2="66" class="vl" marker-end="url(#av-vl)"/>
+  <text class="txt-s" x="1884" y="70">VL / Vorlauf (heiß)</text>
+  <line x1="1820" y1="90" x2="1870" y2="90" class="rl" marker-end="url(#av-rl)"/>
+  <text class="txt-s" x="1884" y="94">RL / Rücklauf (kühl)</text>
+  <line x1="1820" y1="114" x2="1870" y2="114" class="ww" marker-end="url(#av-ww)"/>
+  <text class="txt-s" x="1884" y="118">WW / Warmwasser · Kaltwasser</text>
+  <line x1="1820" y1="138" x2="1870" y2="138" class="gas" marker-end="url(#av-gas)"/>
+  <text class="txt-s" x="1884" y="142">Abgas</text>
+  <line x1="1820" y1="162" x2="1870" y2="162" class="ctl" marker-end="url(#av-ctl)"/>
+  <text class="txt-s" x="1884" y="166">Steuer / Regelung (UVR)</text>
+  <use href="#sym-pump" x="1828" y="186"/>
+  <text class="txt-s" x="1884" y="190">Kreiselpumpe (O1–O8, SV)</text>
+  <use href="#sym-pt" x="1828" y="210"/>
+  <text class="txt-s" x="1884" y="214">PT-Fühler (a1–a16)</text>
+  <rect x="1820" y="226" width="14" height="14" fill="#f87171" opacity="0.85" rx="3"/>
+  <text class="txt-s" x="1884" y="238">RISK-Flag (O5 Ölbrenner)</text>
+
+  <!-- ============================ PUFFER ============================ -->
+  <g id="comp-puffer">
+    <text class="txt-h" x="850" y="398" text-anchor="middle">P · Pufferspeicher</text>
+    <rect class="box-hi" x="780" y="420" width="140" height="460" rx="10"/>
+    <!-- Zonen (Scheidegrenzen) -->
+    <line x1="780" y1="500" x2="920" y2="500" stroke="#243250" stroke-width="1"/>
+    <line x1="780" y1="590" x2="920" y2="590" stroke="#243250" stroke-width="1"/>
+    <line x1="780" y1="720" x2="920" y2="720" stroke="#243250" stroke-width="1"/>
+    <!-- Zonen-Labels links im Puffer -->
+    <text class="txt-s" x="795" y="462">ganz oben</text>
+    <text class="txt-s" x="795" y="514">oben</text>
+    <text class="txt-s" x="795" y="652">Mitte</text>
+    <text class="txt-s" x="795" y="766">unten</text>
+    <text class="txt-s" x="795" y="806">ganz unten</text>
+    <!-- Solar-Spirale (unten im Puffer) -->
+    <path d="M805,846 C825,830 855,830 870,846 M805,856 C825,840 855,840 870,856" class="sym-acc"/>
+    <!-- PT a1/a2/a3 (rechts am Puffer) -->
+    <use href="#sym-pt" x="920" y="470"/>
+    <text class="txt-s" x="934" y="474">a1</text>
+    <use href="#sym-pt" x="920" y="650"/>
+    <text class="txt-s" x="934" y="654">a2</text>
+    <use href="#sym-pt" x="920" y="770"/>
+    <text class="txt-s" x="934" y="774">a3</text>
+  </g>
+
+  <!-- ============================ E1 ABGAS / SCHORNSTEIN ============================ -->
+  <g id="comp-abgas">
+    <use href="#sym-chimney" x="200" y="440"/>
+    <text class="txt-s" x="200" y="478" text-anchor="middle">E1 · Schornstein</text>
+    <use href="#sym-pt" x="180" y="395"/>
+    <text class="txt-s" x="168" y="399" text-anchor="end">a10</text>
+    <text class="txt-s" x="200" y="520" text-anchor="middle">Abgas AN/AUS (digital)</text>
+  </g>
+
+  <!-- Abgas-Leitung H1 -> Schornstein -->
+  <path id="pipe-abgas" class="gas" d="M400,490 L400,460 L200,460" marker-end="url(#av-gas)"/>
+
+  <!-- ============================ E2 AUSSEN ============================ -->
+  <g id="comp-aussen">
+    <rect class="box" x="320" y="300" width="140" height="70" rx="10"/>
+    <text class="txt-h" x="390" y="332" text-anchor="middle">E2 · Aussen</text>
+    <use href="#sym-pt" x="340" y="352"/>
+    <text class="txt-s" x="352" y="356">a8</text>
+  </g>
+
+  <!-- E2 -> C1 (Heizkurve) -->
+  <path id="ctl-e2-c1" class="ctl" d="M460,335 L460,266 L2140,266 L2140,560" marker-end="url(#av-ctl)"/>
+  <text class="txt-c" x="900" y="256">Heizkurve (a8 → C1)</text>
+
+  <!-- ============================ LOOP A: HOLZ ============================ -->
+  <g id="comp-holzofen">
+    <rect class="box" x="360" y="490" width="200" height="160" rx="10"/>
+    <text class="txt-h" x="460" y="524" text-anchor="middle">H1 · Holzofen</text>
+    <text class="txt-s" x="460" y="544" text-anchor="middle">(Festbrennstoff)</text>
+    <rect x="410" y="560" width="100" height="52" rx="6" fill="#f59e0b" opacity="0.15" stroke="#f59e0b" stroke-width="1"/>
+    <text class="txt-s" x="452" y="592" text-anchor="middle">Wasserjacket</text>
+    <use href="#sym-pt" x="495" y="576"/>
+    <text class="txt-s" x="503" y="580">a9</text>
+    <text class="txt-s" x="460" y="608" text-anchor="middle">Fühler im Wassertank (H1)</text>
+    <text class="txt-addr" x="460" y="632" text-anchor="middle">O1 · 10120A10180</text>
+  </g>
+
+  <!-- A-VL: H1 -> P ganz oben ; Pumpe O1 auf der Leitung. Oberes Paar: 2 getrennte Anschlüsse
+       (H1-VL y=440 + H2-VL WW-Modus y=450, s. pipe-b-ww) — symmetrisch zum unteren Paar (HITL 2026-10-29 R2) -->
+  <path id="pipe-a-vl" class="vl" d="M530,490 L530,440 L780,440" marker-end="url(#av-vl)"/>
+  <use href="#sym-pump" x="530" y="450"/>
+
+  <!-- A-RL: P ganz unten -> H1 (freier Kanal links von H2). GETRENNTER Anschluss „ganz unten" (y=870);
+       O9-(b) mündet 10 px (=10 cm, nicht maßstäblich) HÖHER in „unten" (y=860) — oben und unten je 2 getrennte Paare (HITL 2026-10-29 R2) -->
+  <path id="pipe-a-rl" class="rl" d="M780,870 L300,870 L300,580 L360,580" marker-end="url(#av-rl)"/>
+  <!-- ============================ LOOP B: OEL ============================ -->
+  <g id="comp-oel">
+    <rect class="box" x="360" y="700" width="200" height="160" rx="10"/>
+    <text class="txt-h" x="460" y="728" text-anchor="middle">H2 · Ölheizung</text>
+    <text class="txt-s" x="460" y="748" text-anchor="middle">Oelbrenner-R1</text>
+    <use href="#sym-pt" x="380" y="780"/>
+    <text class="txt-s" x="394" y="784">a5</text>
+    <rect x="410" y="792" width="100" height="34" rx="5" fill="#f87171" opacity="0.12" stroke="#f87171" stroke-width="1"/>
+    <text class="txt-risk" x="460" y="814" text-anchor="middle">⚠ O5 · RISK (Ölverbrennung)</text>
+    <text class="txt-addr" x="460" y="848" text-anchor="middle">O5 · 10520A10180 · AUS/EIN/AUTO</text>
+  </g>
+
+  <!-- B-Heiz: P Mitte -> H2 (Rücklauf aus Puffer-Mitte, HEIZ-Modus) -->
+  <path id="pipe-b-in" class="vl" d="M780,660 L540,660 L540,700" marker-end="url(#av-vl)"/>
+
+  <!-- B-Heiz: H2-Vorlauf -> Mischer (VL direkt, freier Kanal unten) -->
+  <path id="pipe-b-vl" class="vl" d="M560,745 L680,745 L680,1055 L1050,1055 L1050,880" marker-end="url(#av-vl)"/>
+  <text class="txt-s" x="760" y="996">HEIZ-Modus: P-Mitte → H2 → Mischer (VL direkt)</text>
+
+  <!-- B-WW: H2-Vorlauf -> P ganz oben (WW-Modus; Korrektur maintainer 2026-10-29) ; Pumpe O6 -->
+  <!-- Start: H2-rechtskante (x=560, Vorlauf-Auslass), Kanal x=620, ENDSEPARAT an Puffer-Linkskante „ganz oben"
+       (y=450) — der obere Anschluss von H2 ist GETRENNT vom H1-VL-Anschluss (y=440); oben und unten je 2 getrennte Paare (HITL 2026-10-29 R2) -->
+  <path id="pipe-b-ww" class="ww" d="M560,770 L620,770 L620,450 L780,450" marker-end="url(#av-ww)"/>
+  <use href="#sym-pump" x="620" y="560"/>
+  <text class="txt-s" x="640" y="480">WW-Modus:</text>
+  <text class="txt-s" x="640" y="494">H2-VL → P-ganz-oben</text>
+  <text class="txt-addr" x="632" y="792">O6 · 10220A10180</text>
+
+  <!-- ============================ LOOP C: SOLAR ============================ -->
+  <g id="comp-solar">
+    <rect class="box" x="360" y="1000" width="200" height="160" rx="10"/>
+    <text class="txt-h" x="460" y="1008" text-anchor="middle">H3 · Solar-Kollektor</text>
+    <text class="txt-s" x="460" y="1024" text-anchor="middle">(Dach, seit 2021-10)</text>
+    <!-- Kollektor-Symbol (Schiefebene) -->
+    <line x1="400" y1="1080" x2="500" y2="1040" stroke="#f59e0b" stroke-width="4"/>
+    <line x1="410" y1="1084" x2="510" y2="1044" stroke="#f59e0b" stroke-width="1.5"/>
+    <line x1="420" y1="1088" x2="520" y2="1048" stroke="#f59e0b" stroke-width="1.5"/>
+    <use href="#sym-pt" x="500" y="1052"/>
+    <text class="txt-s" x="512" y="1056">a16</text>
+    <text class="txt-addr" x="460" y="1102" text-anchor="middle">SV · 10040912091 (x2, Node 32)</text>
+    <text class="txt-s" x="460" y="1140" text-anchor="middle">Spirale: Wärme in untere Puffer-Haelfte</text>
+  </g>
+
+  <!-- C: H3 -> Solarpumpe -> P untere Haelfte (Spirale) ; RL Spirale -> H3 -->
+  <path id="pipe-c-vl" class="vl" d="M545,1000 L545,960 L667,960 M693,960 L850,960 L850,860" marker-end="url(#av-vl)"/>
+  <path id="pipe-c-rl" class="rl" d="M830,858 L830,1040 L560,1040" marker-end="url(#av-rl)"/>
+  <text class="txt-s" x="690" y="1030">Solar-Rücklauf</text>
+  <use href="#sym-pump" x="680" y="960"/>
+
+  <!-- ============================ LOOP D: WARMWASSER ============================ -->
+  <g id="comp-ww">
+    <!-- Waermetauscher -->
+    <use href="#sym-heatex" x="1080" y="470"/>
+    <text class="txt-s" x="1060" y="524" text-anchor="middle">Waermetauscher (P-oberer Haelfte → KW)</text>
+    <!-- WW-Box -->
+    <rect class="box" x="1240" y="440" width="200" height="120" rx="10"/>
+    <text class="txt-h" x="1340" y="470" text-anchor="middle">WW · Warmwasser</text>
+    <use href="#sym-pt" x="1265" y="500"/>
+    <text class="txt-s" x="1277" y="504">a4</text>
+    <text class="txt-s" x="1340" y="520" text-anchor="middle">Ziel FEST 50 °C (nicht setzbar)</text>
+    <text class="txt-s" x="1340" y="540" text-anchor="middle">SS a16 in Zirkulation (binär)</text>
+  </g>
+
+  <!-- D-Lade: P obere Haelfte -> Waermetauscher -> WW ; Pumpe O2 -->
+  <path id="pipe-d-lade" class="ww" d="M920,482 L1040,482 L1040,470" marker-end="url(#av-ww)"/>
+  <path id="pipe-d-lade2" class="ww" d="M1120,470 L1187,470 M1213,470 L1240,470" marker-end="url(#av-ww)"/>
+  <use href="#sym-pump" x="1200" y="470"/>
+  <text class="txt-addr" x="1180" y="494" text-anchor="middle">O2 · 10620A10180</text>
+  <text class="txt-s" x="1180" y="512" text-anchor="middle">Ladepumpe WW</text>
+
+  <!-- D-Zirk: WW -> O7 -> Zapfstelle -> WW (Ring unterhalb) -->
+  <path id="pipe-d-zirk" class="ww" d="M1340,560 L1340,600 L1353,600 M1377,600 L1440,600 L1440,560" marker-end="url(#av-ww)"/>
+  <use href="#sym-pump" x="1365" y="600"/>
+  <text class="txt-addr" x="1450" y="588">O7 · 10720A10180</text>
+  <text class="txt-s" x="1300" y="638">Zirkulationspumpe</text>
+  <text class="txt-s" x="1440" y="624">Zapfstelle(n)</text>
+
+  <!-- ============================ LOOP E: HEIZUNG ============================ -->
+  <g id="comp-mischer">
+    <rect class="box" x="1020" y="800" width="80" height="80" rx="10"/>
+    <use href="#sym-valve" x="1060" y="840"/>
+    <text class="txt-h" x="1060" y="816" text-anchor="middle">Mischer</text>
+    <text class="txt-c" x="1060" y="836" text-anchor="middle">O3/O4 · C1-intern</text>
+    <!-- RL-Bypass -->
+    <path id="pipe-e-bypass" class="rl" d="M1100,820 L1120,820 L1120,860 L1100,860" marker-end="url(#av-rl)"/>
+    <text class="txt-s" x="1126" y="872">RL-Bypass</text>
+  </g>
+
+  <!-- E-VL: Mischer -> O8 -> a6 -> Verteiler (Haupt-Horizontale y=800) -->
+  <path id="pipe-e-vl" class="vl" d="M1100,800 L1167,800 M1193,800 L1244,800 M1256,800 L1360,800" marker-end="url(#av-vl)"/>
+  <use href="#sym-pump" x="1180" y="800"/>
+  <text class="txt-addr" x="1195" y="748">O8 · 10820A10180</text>
+  <use href="#sym-pt" x="1250" y="800"/>
+  <text class="txt-s" x="1222" y="824">a6</text>
+
+  <path id="pipe-e-vl-1" class="vl" d="M1360,800 L1360,690 L1380,690" marker-end="url(#av-vl)"/>
+  <path id="pipe-e-vl-2" class="vl" d="M1360,800 L1380,800" marker-end="url(#av-vl)"/>
+  <path id="pipe-e-vl-3" class="vl" d="M1360,800 L1360,980 L1380,980" marker-end="url(#av-vl)"/>
+
+  <!-- 3 Einrohr-Kreise -->
+  <g id="comp-raum-keller">
+    <rect class="box" x="1380" y="645" width="180" height="90" rx="10"/>
+    <text class="txt-h" x="1470" y="676" text-anchor="middle">R1 · Keller</text>
+    <use href="#sym-rad" x="1440" y="705"/>
+    <text class="txt-c" x="1546" y="712" text-anchor="end">V1 (dev2)</text>
+  </g>
+  <g id="comp-raum-eg">
+    <rect class="box" x="1380" y="755" width="180" height="90" rx="10"/>
+    <text class="txt-h" x="1470" y="794" text-anchor="middle">R2 · EG</text>
+    <use href="#sym-rad" x="1440" y="820"/>
+    <text class="txt-c" x="1546" y="816" text-anchor="end">V1 (dev2)</text>
+  </g>
+  <g id="comp-raum-dg">
+    <rect class="box" x="1380" y="935" width="180" height="90" rx="10"/>
+    <text class="txt-h" x="1470" y="974" text-anchor="middle">R3 · DG</text>
+    <use href="#sym-rad" x="1440" y="1000"/>
+    <text class="txt-c" x="1546" y="996" text-anchor="end">V1 (dev2)</text>
+  </g>
+
+  <!-- RL der 3 Kreise -> RM1/2/3 (Rücklaufminderer-Spalte x=1650) -->
+  <path id="pipe-rl-rm1" class="rl" d="M1560,690 L1638,690" marker-end="url(#av-rl)"/>
+  <path id="pipe-rl-rm2" class="rl" d="M1560,800 L1638,800" marker-end="url(#av-rl)"/>
+  <path id="pipe-rl-rm3" class="rl" d="M1560,980 L1638,980" marker-end="url(#av-rl)"/>
+  <use href="#sym-valve" x="1650" y="690"/>
+  <use href="#sym-valve" x="1650" y="800"/>
+  <use href="#sym-valve" x="1650" y="980"/>
+  <text class="txt-c" x="1650" y="662" text-anchor="middle">RM1 · 0–10 V</text>
+  <text class="txt-c" x="1650" y="828" text-anchor="middle">RM2 · 0–10 V</text>
+  <text class="txt-c" x="1650" y="952" text-anchor="middle">RM3 · 0–10 V</text>
+  <text class="txt-c" x="1440" y="1012" text-anchor="middle">Rücklaufminderer · C-intern (UVR610)</text>
+
+  <!-- zentrale RL: RM1/2/3 -> Bus (x=1700) -> O9-Entscheidung -->
+  <path d="M1662,690 L1700,690" class="rl"/>
+  <path d="M1662,800 L1700,800" class="rl"/>
+  <path d="M1662,980 L1700,980" class="rl"/>
+  <path id="pipe-rl-central" class="rl" d="M1700,690 L1700,1095 L1570,1095" marker-end="url(#av-rl)"/>
+  <use href="#sym-pt" x="1700" y="1024"/>
+  <text class="txt-s" x="1712" y="1028">a7</text>
+  <text class="txt-s" x="1640" y="1036" text-anchor="end">RL zentral + 3 Kreis-T (4 Werte)</text>
+
+  <g id="valve-o9">
+    <rect class="box" x="1410" y="1060" width="160" height="70" rx="10"/>
+    <use href="#sym-valve" x="1425" y="1095"/>
+    <text class="txt-h" x="1490" y="1082" text-anchor="middle">O9 · Rücklauf-Entscheidung</text>
+    <text class="txt-addr" x="1490" y="1110" text-anchor="middle">10920A10180</text>
+  </g>
+  <!-- O9(a): zurueck zur Oelheizung -->
+  <path id="pipe-o9-a" class="rl" d="M1410,1060 L600,1060 L600,820 L560,820" marker-end="url(#av-rl)"/>
+  <text class="txt-s" x="850" y="1040">(a) → Ölheizung (H2)</text>
+  <!-- O9(b): Puffer UNTEREN (10 cm über „ganz unten"; HITL 2026-10-29) — GETRENNTER Anschluss,
+       H1-RL (pipe-a-rl) mündet tiefer an „ganz unten" (y=870) -->
+  <path id="pipe-o9-b" class="rl" d="M1440,1130 L1440,1180 L750,1180 L750,860 L780,860" marker-end="url(#av-rl)"/>
+  <text class="txt-s" x="950" y="1164">(b) → Puffer unten</text>
+
+  <!-- ============================ STEUER-BOXEN ============================ -->
+  <g id="comp-uvr1611">
+    <rect class="box-hi" x="1840" y="560" width="320" height="210" rx="10"/>
+    <text class="txt-h" x="2000" y="588" text-anchor="middle">C1 · UVR1611 (Node 1)</text>
+    <text class="txt-s" x="1860" y="600">M · Betriebsmodus · 101301D0180</text>
+    <text class="txt-s" x="1860" y="626">O1 · Pumpe Holzofen · 10120A10180</text>
+    <text class="txt-risk" x="1860" y="652">O5 · Ölbrenner · 10520A10180 · RISK</text>
+    <text class="txt-s" x="1860" y="678">O8 · Pumpe Heizkreis · 10820A10180</text>
+    <text class="txt-s" x="1860" y="704">O9 · Ventil Heizungsrücklauf · 10920A10180</text>
+    <text class="txt-c" x="1860" y="730">O3/O4 · Mischkreisregler (intern)</text>
+    <text class="txt-c" x="1860" y="756">O6 · WW vom Öl (intern)</text>
+    <text class="txt-c" x="1860" y="769">O2/O7 · WW-Lade / Zirk. (intern)</text>
+  </g>
+  <g id="comp-uvr610">
+    <rect class="box-hi" x="1840" y="780" width="320" height="160" rx="10"/>
+    <text class="txt-h" x="2000" y="808" text-anchor="middle">C2 · UVR610 (Node 32)</text>
+    <text class="txt-s" x="1860" y="842">SV · Solarpumpe · 10040912091 (x2)</text>
+    <text class="txt-c" x="1860" y="866">V1 · HzRk-Ventile R1/R2/R3 (intern)</text>
+    <text class="txt-c" x="1860" y="890">RM1/2/3 · Rücklaufminderer 0–10 V (intern)</text>
+    <text class="txt-s" x="1860" y="914">Solar + RAS/HzRk + RM · Node 32</text>
+  </g>
+
+  <!-- Steuer-Linien C1/C2 (gestrichelt, dedizierte freie Kanäle) -->
+  <path id="ctl-c1-o1" class="ctl" d="M1840,590 L1795,590 L1795,378 L530,378 L530,452" marker-end="url(#av-ctl)"/>
+  <path id="ctl-c1-o5" class="ctl" d="M1840,636 L1795,636 L1795,930 L575,930 L575,780 L560,780" marker-end="url(#av-ctl)"/>
+  <path id="ctl-c1-o8" class="ctl" d="M1840,678 L1795,678 L1795,560 L1180,560 L1180,787" marker-end="url(#av-ctl)"/>
+  <path id="ctl-c1-o9" class="ctl" d="M1840,692 L1795,692 L1795,1048 L1410,1048 L1410,1058" marker-end="url(#av-ctl)"/>
+  <path id="ctl-c1-mischer" class="ctl" d="M1840,684 L1795,684 L1795,850 L1060,850 L1060,882" marker-end="url(#av-ctl)"/>
+  <path id="ctl-c1-o2" class="ctl" d="M1840,764 L1795,764 L1795,430 L1200,430 L1200,457" marker-end="url(#av-ctl)"/>
+  <path id="ctl-c1-o6" class="ctl" d="M1840,743 L1795,743 L1795,545 L620,545 L620,547" marker-end="url(#av-ctl)"/>
+  <path id="ctl-c1-o7" class="ctl" d="M1840,756 L1795,756 L1795,570 L1365,570 L1365,587" marker-end="url(#av-ctl)"/>
+  <path id="ctl-c2-sv" class="ctl" d="M1840,842 L1795,842 L1795,1140 L600,1140 L600,960 L667,960" marker-end="url(#av-ctl)"/>
+  <path id="ctl-c2-rm" class="ctl" d="M1840,890 L1795,890 L1795,800 L1662,800" marker-end="url(#av-ctl)"/>
+
+  <!-- ============================ LIVE-READOUTS ============================ -->
+  <g id="readouts">
+    <text class="txt-h" x="40" y="1240">Live-Readouts (CMI)</text>
+    <text class="txt-s" x="360" y="1240">animierter Build füllt von /api/v1/state (hier Platzhalter „–")</text>
+    <!-- Reihe 1 -->
+    <g font-size="12">
+      <rect class="box" x="40" y="1250" width="184" height="44" rx="8"/><text class="txt-s" x="52" y="1272">P-Oben · a1 (dev0)</text><text class="txt" x="212" y="1274" text-anchor="middle">–</text>
+      <rect class="box" x="236" y="1250" width="184" height="44" rx="8"/><text class="txt-s" x="248" y="1272">P-Mitte · a2 (dev0)</text><text class="txt" x="408" y="1274" text-anchor="middle">–</text>
+      <rect class="box" x="432" y="1250" width="184" height="44" rx="8"/><text class="txt-s" x="444" y="1272">P-Unten · a3 (dev0)</text><text class="txt" x="604" y="1274" text-anchor="middle">–</text>
+      <rect class="box" x="628" y="1250" width="184" height="44" rx="8"/><text class="txt-s" x="640" y="1272">WW · a4 (dev0)</text><text class="txt" x="800" y="1274" text-anchor="middle">–</text>
+      <rect class="box" x="824" y="1250" width="184" height="44" rx="8"/><text class="txt-s" x="836" y="1272">Öl-VL · a5 (dev0)</text><text class="txt" x="996" y="1274" text-anchor="middle">–</text>
+      <rect class="box" x="1020" y="1250" width="184" height="44" rx="8"/><text class="txt-s" x="1032" y="1272">VL · a6 (dev0)</text><text class="txt" x="1192" y="1274" text-anchor="middle">–</text>
+      <rect class="box" x="1216" y="1250" width="184" height="44" rx="8"/><text class="txt-s" x="1228" y="1272">RL zentral · a7 (dev0)</text><text class="txt" x="1388" y="1274" text-anchor="middle">–</text>
+      <rect class="box" x="1412" y="1250" width="184" height="44" rx="8"/><text class="txt-s" x="1424" y="1272">Aussen · a8 (dev0)</text><text class="txt" x="1584" y="1274" text-anchor="middle">–</text>
+      <rect class="box" x="1608" y="1250" width="184" height="44" rx="8"/><text class="txt-s" x="1620" y="1272">Holz-Tank · a9 (dev0)</text><text class="txt" x="1780" y="1274" text-anchor="middle">–</text>
+    </g>
+    <!-- Reihe 2 -->
+    <g font-size="12">
+      <rect class="box" x="40" y="1306" width="184" height="44" rx="8"/><text class="txt-s" x="52" y="1328">Abgas · a10 (dev0)</text><text class="txt" x="212" y="1330" text-anchor="middle">–</text>
+      <rect class="box" x="236" y="1306" width="184" height="44" rx="8"/><text class="txt-s" x="248" y="1328">WW-Zirk SS · a16 (dev0)</text><text class="txt" x="408" y="1330" text-anchor="middle">–</text>
+      <rect class="box" x="432" y="1306" width="184" height="44" rx="8"/><text class="txt-s" x="444" y="1328">Kollektor · a16 (dev2)</text><text class="txt" x="604" y="1330" text-anchor="middle">–</text>
+      <rect class="box" x="628" y="1306" width="184" height="44" rx="8"/><text class="txt-s" x="640" y="1328">RL Keller (dev2)</text><text class="txt" x="800" y="1330" text-anchor="middle">–</text>
+      <rect class="box" x="824" y="1306" width="184" height="44" rx="8"/><text class="txt-s" x="836" y="1328">RL EG (dev2)</text><text class="txt" x="996" y="1330" text-anchor="middle">–</text>
+      <rect class="box" x="1020" y="1306" width="184" height="44" rx="8"/><text class="txt-s" x="1032" y="1328">RL DG (dev2)</text><text class="txt" x="1192" y="1330" text-anchor="middle">–</text>
+      <rect class="box" x="1216" y="1306" width="184" height="44" rx="8"/><text class="txt-s" x="1228" y="1328">Raum Keller (dev2)</text><text class="txt" x="1388" y="1330" text-anchor="middle">–</text>
+      <rect class="box" x="1412" y="1306" width="184" height="44" rx="8"/><text class="txt-s" x="1424" y="1328">Raum EG (dev2)</text><text class="txt" x="1584" y="1330" text-anchor="middle">–</text>
+      <rect class="box" x="1608" y="1306" width="184" height="44" rx="8"/><text class="txt-s" x="1620" y="1328">Raum DG (dev2)</text><text class="txt" x="1780" y="1330" text-anchor="middle">–</text>
+    </g>
+  </g>
+
+  <!-- ============================ FUSSZEILE ============================ -->
+  <text class="txt-s" x="40" y="1400">K1: 3× Kreis-RL-T Kanalmapping offen · K2: O2/O6/O7-Zuordnung provisorisch · K3: RM-Readout (dev2 a10–a12, Vermutung) · V6: WW-Modus = H2-Vorlauf → P ganz oben (Korrektur maintainer 2026-10-29)</text>
+  <text class="txt-s" x="40" y="1420">K3 (Fortsetzung): Rücklaufminderer nicht in CMI-L1-Whitelist → evtl. read-only über dev2</text>
+  <text class="txt-s" x="2160" y="1400" text-anchor="end">V6-Layout · Readouts = CMI-Live-Werte (Platzhalter „–")</text>
+</svg>

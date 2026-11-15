@@ -1,0 +1,50 @@
+# Secrets
+.env
+*.env
+!.env.example
+
+# DB / Logs / Daten
+*.db
+*.sqlite3
+data/
+logs/
+audit/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Discovery-Artefakte bleiben versioniert (klein). Die 5 Schematic-Layout-PNGs
+# werden im Public-Repo versioniert (Tests liefern sie via /assets-Mount);
+# weitere Screenshots/Entwuerfe bleiben out-of-repo.
+*.png
+!assets/schematics/*.png
+
+# S6-KI: Laufzeit-/Wiederhol-Artefakte (reproduzierbar via analysis.model.m1/m2b train)
+models/
+analysis/model/*/runs/
+analysis/model/m1/bias_profile.json
+
+# Scratch-/Zwischenergebnisse (lokales Projekt-tmp, nicht versionieren)
+tmp/
+
+# Lokale Daten-Backups (Archive, nie versionieren)
+data_backup_*.tgz

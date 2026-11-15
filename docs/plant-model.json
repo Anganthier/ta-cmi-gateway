@@ -1,0 +1,1106 @@
+{
+  "meta": {
+    "title": "TA example plant Example-Street 1 - Anlagenstrukturmodell (schematic heating-system model)",
+    "extracted": "2026-10-27",
+    "extracted_by": "plant-model subagent (read-only)",
+    "confidence": "high",
+    "confidence_legend": {
+      "hoch": "tdw + WinSol Setup.xml + (ggf.) 2022 CMI-WEB.xml + live-Parquet-Timeline stimmen ueberein",
+      "mittel": "zwei Quellen stimmen ueberein, eine fehlt oder ist uneindeutig",
+      "niedrig": "Widerspruch oder reine Ableitung ohne Bestaetigung"
+    },
+    "source_files": [
+      {
+        "path": "house-heating/20211020_owner.tdw",
+        "role": "UVR1611 (node 1) Hauptprogramm, TA-Designer v1.0.14 (2021-10-20)",
+        "era": "2021-10-20"
+      },
+      {
+        "path": "house-heating/UVR610_32_20211029.tdw",
+        "role": "UVR610 (node 32) Solar+RAS-Programm (2021-10-29)",
+        "era": "2021-10-29"
+      },
+      {
+        "path": "house-heating/20220918_owner.dat",
+        "role": "RAW-EEPROM-Image der UVR1611 (D1.00), AKTUELLES Programm-Image",
+        "era": "2022-09-18"
+      },
+      {
+        "path": "house-heating/UVR610_32_20220918.dat",
+        "role": "RAW-EEPROM-Image der UVR610 (D1.00, FW T1.19)",
+        "era": "2022-09-18"
+      },
+      {
+        "path": "house-heating/owner_backup.tdw",
+        "role": "aeltere/Alt-Variante (2014, v1.0.0) - Referenz nur",
+        "era": "~2014"
+      },
+      {
+        "path": "house-heating/owner.xml",
+        "role": "CAN-Touch-Layout (2017) - belegt die a1..a10-Kanalbelegung der UVR1611",
+        "era": "2017-01"
+      },
+      {
+        "path": "house-heating/owner-backup_01042014.xml",
+        "role": "CAN-Touch-Backup (4 Seiten) - Referenz nur",
+        "era": "2014-04"
+      },
+      {
+        "path": "house-heating/CMI/{1.cgi,1.html,1.png,config.tas}",
+        "role": "CMI-Startseite-Layout (alt, 1200x900) - posN-Koordinaten + Setzelemente",
+        "era": "2015-2021"
+      },
+      {
+        "path": "house-heating/CMI-Web/ + CMI-WEB/CMI-WEB.xml (CMI_WebTest)",
+        "role": "AKTUELLES CMI-Seiten-Layout (1600x1200) - authoritative Belegung der 9 Setzelemente (CAN-idx/sub)",
+        "era": "2022-09"
+      },
+      {
+        "path": "WinSol .../example-plant/Setup.xml",
+        "role": "WinSol-Label-Modell aller 3 Logger-Geraete (a1..a16, d1..d13 je Geraet)",
+        "era": "2023-10"
+      },
+      {
+        "path": "discovery/json-api-doc.txt",
+        "role": "CMI JSON-API v8 Doku (Units, La/Ld, RAS-State)",
+        "era": "2025-10"
+      },
+      {
+        "path": "discovery/la_ld_node32.json + live_{1..5}.cgi",
+        "role": "Live-Abgleich (Node-32 La/Ld + 5 Schematic-Seiten, 2026-10-26)",
+        "era": "2026-10"
+      },
+      {
+        "path": "data/winsol_pq/**.parquet",
+        "role": "WinSol-Bestandsdaten 2020-2026 (Timeline/Belegung historisch), count IS NOT NULL",
+        "era": "2020-2026"
+      }
+    ],
+    "device_namespace_note": "Winsol-Long-Format: device='winsol:<N>' (N=0|1|2), channel=<M>. dev0=Heizung/UVR1611-DS1, dev1=Heizung/UVR1611-DS2(RAS), dev2=UVR610-Solar/RAS. JSON-API: json:1=UVR1611, json:32=UVR610.",
+    "staleness_note": "2021 .tdw (2021-10-20) ist die menschenlesbare Struktur; 2022-09-18 .dat-Images sind das AKTUELLE Programm auf den Geraten. Struktur-Belegung (Kanaele/BDB/Setzelemente) ist zwischen .tdw und .dat IDENTISCH; einzige nachvollziehbare Aenderung ist UVR610-FW T1.18->T1.19 und drei neue BDB-Labels (Keller/EG/OG HzRkl Ventil) im 2022-09-18-Image. Details: docs/plant-model.md."
+  },
+  "timeline": [
+    {
+      "milestone": "Logger-Start (WinSol dev0 + dev1, UVR1611 DS1+DS2)",
+      "date": "2020-08-30T12:36:09",
+      "evidence": "Parquet count(IS NOT NULL) dev0_analog_01 & dev1_analog_01 erste Nicht-NULL; 19.211.004 Werte durchgehend",
+      "confidence": "hoch"
+    },
+    {
+      "milestone": "UVR610 Inbetriebnahme (dev2 analog, Solar)",
+      "date": "2021-10-31T00:00:03",
+      "evidence": "Parquet dev2_analog_01 erste Nicht-NULL; 15.559.299 Werte. Bestaetigt Mensch-Vermutung 'UVR610 kam 2021'. tdw 2021-10-29 + .dat 2021-10-29 passen dazu.",
+      "confidence": "hoch"
+    },
+    {
+      "milestone": "dev2 digital (Solarpumpe / D1) aktiv",
+      "date": "2022-03-24T14:50:25",
+      "evidence": "Parquet dev2_digital_01 erste Nicht-NULL; 14.312.642 Werte. Stimmte mit LogX-Formatvariante P=137 (digital-Byte +136). UVR610-.dat 2022-03-24/25/09-18 zeigen FW T1.19, data_size 0x750.",
+      "confidence": "hoch"
+    }
+  ],
+  "components": [
+    {
+      "id": "kessel_holz",
+      "label_de": "Festbrennstoff-/Holzkessel",
+      "type": "boiler_solid_fuel",
+      "connected_to": [
+        "speicher_puffer",
+        "abgas_holz",
+        "uvr1611"
+      ],
+      "measured": [
+        "Holzkessel Vorlauf (a9)",
+        "Abgastemperatur Holz (a10)"
+      ],
+      "outputs": [
+        "O1 Pumpe Holzofen",
+        "Abgas Holz AN/AUS (O14/Seite5 pos15)"
+      ],
+      "tdw_ref": "20211020_owner.tdw: Cameloon 'Festbrennstoffkessel' id 1632559195079233; ein nr=9 -> a9; ein nr=10 -> a10 (Abgas, styp=1) ; BDB bdb6 'Holz CNT'; Seite 5 'Kamin'",
+      "confidence": "hoch"
+    },
+    {
+      "id": "kessel_oel",
+      "label_de": "Oelkessel / Oelbrenner",
+      "type": "boiler_oil",
+      "connected_to": [
+        "speicher_puffer",
+        "uvr1611"
+      ],
+      "measured": [
+        "Oelkessel Vorlauf (a5)",
+        "Anfoerdung Brenner (d5/O5)"
+      ],
+      "outputs": [
+        "O5 Anfoerdung Oelbrenner"
+      ],
+      "tdw_ref": "20211020_owner.tdw: ein nr=5 (bgrp=1 bnr=1) -> a5 Oelkessel Vorlauf; BDB bdb5 'Oel CNT'; Cameloen 'Oelbrenner' (Seite 1, rechts untern). CMI_WebTest/Oelbrenner-R1-Montageanleitung.pdf",
+      "confidence": "hoch"
+    },
+    {
+      "id": "speicher_puffer",
+      "label_de": "Pufferspeicher 900 L (mit WW-Boiler)",
+      "type": "storage_tank",
+      "volume_l": 900,
+      "connected_to": [
+        "kessel_holz",
+        "kessel_oel",
+        "solar_system",
+        "heizkreis_rl",
+        "warmwasser"
+      ],
+      "measured": [
+        "Speicher Oben (a1)",
+        "Speicher Mitte (a2)",
+        "Speicher Unten (a3)"
+      ],
+      "tdw_ref": "20211020_owner.tdw: Cameloon 'Speicher' id 1632560038189520 (8 Wasser-Pins: Oben/Mitte/Unten + VL/RL + Solar + WW); ein nr=1,2,3 -> a1,a2,a3; owner.xml Bezeichnungen T.SP.oben/mitte/unten (idx 8333 sub 1,2,3)",
+      "confidence": "hoch"
+    },
+    {
+      "id": "warmwasser",
+      "label_de": "Warmwasser (WW-Boiler im Puffeer, mit Ladepumpe + Zirkulation)",
+      "type": "domestic_hot_water",
+      "connected_to": [
+        "speicher_puffer",
+        "kessel_oel"
+      ],
+      "measured": [
+        "Warmwasser (a4)"
+      ],
+      "outputs": [
+        "O2 Ladepumpe WW (zum Puffer)",
+        "O6 Ladep.WW.5 (WW vom Oel)",
+        "O7 Zirkulationspumpe"
+      ],
+      "tdw_ref": "20211020_owner.tdw: ein nr=4 -> a4 Warmwasser; BDB bdb3 'Warmwasser', bdb7 'NL Lad WW', bdb11 'L-WW Cmp'; Seite 2 'Warmwasser'",
+      "confidence": "hoch"
+    },
+    {
+      "id": "heizkreis_rl",
+      "label_de": "Heizkreis Ruecklauf (Mischkreis mit 3 RAS-Raeumen Keller/EG/OG + Ruecklaufventil)",
+      "type": "heating_circuit_mixed",
+      "connected_to": [
+        "speicher_puffer",
+        "kessel_holz",
+        "kessel_oel",
+        "raum_keller",
+        "raum_eg",
+        "raum_dg"
+      ],
+      "measured": [
+        "Heizkreis Vorlauf (a6)",
+        "Heizkreis Ruecklauf (a7)"
+      ],
+      "outputs": [
+        "O8 Pumpe Heizkreis",
+        "O3 Mischkreis Auf",
+        "O4 Mischkreis Zu",
+        "O9 Ventil Heizungsruecklauf"
+      ],
+      "tdw_ref": "20211020_owner.tdw: Cameloen '2/3 Wegeventil' id 1632560831090817 (Mischkreis) + 'Pumpe' id 1632559979890982; ein nr=6 -> a6 VL, nr=7 -> a7 RL; BDB bdb9 'P-Heizkreis', bdb2 'Vent. HzRL'; Seiten 1/3 'Raum'",
+      "confidence": "hoch"
+    },
+    {
+      "id": "raum_keller",
+      "label_de": "Raum Keller (RAS)",
+      "type": "room_ras",
+      "connected_to": [
+        "heizkreis_rl"
+      ],
+      "tdw_ref": "UVR610_32_20211029.tdw BDB bdb0 'Keller RAS', bdb1 'Keller Temp'; UVR1611 DS2 (dev1) a1 Offset/a2 Temp + a11 Minuten",
+      "confidence": "hoch"
+    },
+    {
+      "id": "raum_eg",
+      "label_de": "Raum Erdgeschoss (RAS)",
+      "type": "room_ras",
+      "connected_to": [
+        "heizkreis_rl"
+      ],
+      "tdw_ref": "UVR610 BDB bdb2 'Erdgeschoss RAS', bdb3 'Erdgeschoss Temp'; dev1 a4 Offset/a5 Temp + a12 Minuten",
+      "confidence": "hoch"
+    },
+    {
+      "id": "raum_dg",
+      "label_de": "Raum Dachgeschoss (RAS)",
+      "type": "room_ras",
+      "connected_to": [
+        "heizkreis_rl"
+      ],
+      "tdw_ref": "UVR610 BDB bdb4 'Dachgeschoss RAS', bdb5 'Dachgeschoss Temp'; dev1 a7 Offset/a8 Temp + a13 Minuten",
+      "confidence": "hoch"
+    },
+    {
+      "id": "solar_system",
+      "label_de": "Solarsystem (Kollektor, Solarpumpe, UVR610, Speicheruebertragung)",
+      "type": "solar_thermal",
+      "connected_to": [
+        "speicher_puffer",
+        "uvr610"
+      ],
+      "measured": [
+        "T. Kollektor (dev2 a16)",
+        "T.Speicher oben/mitte/unten (dev2 a1..a3)"
+      ],
+      "outputs": [
+        "Solarpumpe (dev2 d1 / node32 O1)"
+      ],
+      "tdw_ref": "UVR610_32_20211029.tdw: ein nr=1..3 (PT1000 Speicher), nr=4 (PT1000 Kollektor, skorr=-7); aus nr=1 -> O1 Solarpumpe; DatLog A1..A16; Seite 4 'Solar'",
+      "confidence": "hoch"
+    },
+    {
+      "id": "abgas_holz",
+      "label_de": "Abgas Holz (Schornstein/Fussboden-Kanal)",
+      "type": "exhaust",
+      "connected_to": [
+        "kessel_holz"
+      ],
+      "measured": [
+        "Abgastemperatur Holz (a10)",
+        "Abgas AN/AUS (Seite5 pos15, digital)"
+      ],
+      "tdw_ref": "20211020_owner.tdw: ein nr=10 -> a10 (styp=1); BDB bdb4 'Abgas'; owner.xml 'Abgas Wert' (idx 8333 sub10, Einheit 0); Seite 5 'Kamin' Cameloen 'Abgas Holz AN/AUS'",
+      "confidence": "hoch"
+    },
+    {
+      "id": "aussen",
+      "label_de": "Auessen (Auessensensor)",
+      "type": "outdoor_sensor",
+      "connected_to": [
+        "uvr1611"
+      ],
+      "measured": [
+        "Temperatur Aussen (a8)"
+      ],
+      "tdw_ref": "20211020_owner.tdw: ein nr=8 -> a8; owner.xml 'Temp.Aussen' (idx 8333 sub8)",
+      "confidence": "hoch"
+    },
+    {
+      "id": "uvr1611",
+      "label_de": "UVR1611 (CAN-Steuergeraet, Node 1)",
+      "type": "controller",
+      "role": "Hauptsteuerung: heizt Speicher, WW, Heizkreis, Mischkreis, Oelbrenner-Grundregelung; liefert 2 Logging-Blocke (dev0=DS1 Heizung, dev1=DS2 RAS)",
+      "connected_to": [
+        "speicher_puffer",
+        "kessel_holz",
+        "kessel_oel",
+        "heizkreis_rl",
+        "warmwasser",
+        "abgas_holz",
+        "aussen",
+        "uvr610"
+      ],
+      "tdw_ref": "20211020_owner.tdw UVR1611 block (KontrollFunk/CanDatLog/BDBListe/Netzwerk Knot=1/Eingaenge/Ausgaenge); CAN node 1",
+      "confidence": "hoch"
+    },
+    {
+      "id": "uvr610",
+      "label_de": "UVR610 (CAN-Steuergeraet, Node 32)",
+      "type": "controller",
+      "role": "Solar-Heizkreislauf + RAS-Logger. Quelle der dev2-Logging-Daten (La/Ld node32). 'x2' in Quelldoku = Doppelrolle Solar HzRl + RAS-Logger (ein Geraet @ node 32).",
+      "connected_to": [
+        "solar_system",
+        "speicher_puffer",
+        "raum_keller",
+        "raum_eg",
+        "raum_dg"
+      ],
+      "tdw_ref": "UVR610_32_20211029.tdw UVR610 block (GeraeteEinst/BDBListe/CAN Knot=32/DL/DatLog/Eingaenge/Ausgaenge/MBus); device 0x91=145",
+      "confidence": "hoch"
+    }
+  ],
+  "devices": [
+    {
+      "device": "winsol:0",
+      "hw": "UVR1611",
+      "can_node": 1,
+      "tdw": "20211020_owner.tdw",
+      "logging_block": "CanDatLog DS1 (qu=1)",
+      "data_since": "2020-08-30T12:36:09",
+      "notes": "Heizungs-Logger (DS1). La/Ld des json:1 (prim. Logging-Block). dev0 = Setup.xml DevBez 'Heizung' (1. Dev).",
+      "channels": {
+        "A": {
+          "1": {
+            "label_de": "Speicher Oben",
+            "component_id": "speicher_puffer",
+            "unit": "°C",
+            "tdw_ref": "ein nr=1 (bnr=12)",
+            "confidence": "hoch"
+          },
+          "2": {
+            "label_de": "Speicher Mitte",
+            "component_id": "speicher_puffer",
+            "unit": "°C",
+            "tdw_ref": "ein nr=2 (bnr=11)",
+            "confidence": "hoch"
+          },
+          "3": {
+            "label_de": "Speicher Unten",
+            "component_id": "speicher_puffer",
+            "unit": "°C",
+            "tdw_ref": "ein nr=3 (bnr=10)",
+            "confidence": "hoch"
+          },
+          "4": {
+            "label_de": "Warmwasser",
+            "component_id": "warmwasser",
+            "unit": "°C",
+            "tdw_ref": "ein nr=4 (bnr=8)",
+            "confidence": "hoch"
+          },
+          "5": {
+            "label_de": "Oelkessel Vorlauf",
+            "component_id": "kessel_oel",
+            "unit": "°C",
+            "tdw_ref": "ein nr=5 (bgrp=1 bnr=1)",
+            "confidence": "hoch"
+          },
+          "6": {
+            "label_de": "Heizkreis Vorlauf",
+            "component_id": "heizkreis_rl",
+            "unit": "°C",
+            "tdw_ref": "ein nr=6 (bnr=6)",
+            "confidence": "hoch"
+          },
+          "7": {
+            "label_de": "Heizkreis Ruecklauf",
+            "component_id": "heizkreis_rl",
+            "unit": "°C",
+            "tdw_ref": "ein nr=7 (bnr=7)",
+            "confidence": "hoch"
+          },
+          "8": {
+            "label_de": "Temperatur Aussen",
+            "component_id": "aussen",
+            "unit": "°C",
+            "tdw_ref": "ein nr=8 (bnr=15)",
+            "confidence": "hoch"
+          },
+          "9": {
+            "label_de": "Holzkessel Vorlauf",
+            "component_id": "kessel_holz",
+            "unit": "°C",
+            "tdw_ref": "ein nr=9 (bgrp=1 bnr=5)",
+            "confidence": "hoch"
+          },
+          "10": {
+            "label_de": "Abgastemperatur Holz",
+            "component_id": "abgas_holz",
+            "unit": "°C (echte Temperatur = Rohwert x10)",
+            "tdw_ref": "ein nr=10 (bgrp=5 bnr=4, styp=1)",
+            "scaling_note": "maintainer 2026-11-01: Kanal laegt mit 1/10 der echten Temperatur vor (winsol_pq, cmi_log_pq, CMI-Anzeige). Echte Abgastemp = Roh * 10. x10 = Teiler-Bauteil, vom Besitzer bestaetigt; kalt Roh ~3 (=~30C); live 2026-11-01 Anzeige 23,2C = 232C. Extreme Rohwerte (Roh-Max 251) sind Fuehlerfehler, kein Beleg: TA-Sentinels 3276,7/-999,9 ab 2021-12-15 und Kurzschlussfenster 2022-04-28 10:00 bis 2022-05-06 14:00. Realistisch (x10): Median ca. 96C, P99 ca. 360C, Besitzer max ca. 330-360C; Gueltigkeitsgrenze 500C (darueber = Fuehlerfehler). m1.3 setzt um: x10, Fenster maskiert, >500C -> NULL (Stundenmittel max 342,9C, flue_last max 430C). Holzkessel-VL max 97C, typisch <= ca. 80C.",
+            "confidence": "hoch"
+          },
+          "11": {
+            "label_de": "(unused)",
+            "component_id": null,
+            "unit": null,
+            "confidence": "hoch"
+          },
+          "12": {
+            "label_de": "(unused)",
+            "component_id": null,
+            "unit": null,
+            "confidence": "hoch"
+          },
+          "13": {
+            "label_de": "(unused)",
+            "component_id": null,
+            "unit": null,
+            "confidence": "hoch"
+          },
+          "14": {
+            "label_de": "(unused)",
+            "component_id": null,
+            "unit": null,
+            "confidence": "hoch"
+          },
+          "15": {
+            "label_de": "Test",
+            "component_id": null,
+            "unit": "°C",
+            "confidence": "niedrig"
+          },
+          "16": {
+            "label_de": "Stroemungsschalter",
+            "component_id": "speicher_puffer",
+            "unit": "Aus/EIN",
+            "tdw_ref": "ein nr=16 (bnr=2 bidx=5, typ=1)",
+            "confidence": "mittel"
+          }
+        },
+        "D": {
+          "1": {
+            "label_de": "Pumpe Holzofen",
+            "component_id": "kessel_holz",
+            "tdw_ref": "aus nr=1 (O1, bgrp=2)",
+            "data_note": "Datenseitig NICHT geloggt: LogX-/CMI-Log-Schema dev0 digital startet bei d2 (nur dev0 d2-d9 + dev2 d1 im Record). Holzpumpen-Laufzeit nicht im Datenbestand; Proxy pump_wood_est_on = wood_vl > 65C, wood_vl > buff_bot + 3K, buff_bot < 90C.",
+            "confidence": "hoch"
+          },
+          "2": {
+            "label_de": "Pumpe Warmwasser zum Puffer (Ladepumpe WW)",
+            "component_id": "warmwasser",
+            "tdw_ref": "aus nr=2 (O2)",
+            "confidence": "hoch"
+          },
+          "3": {
+            "label_de": "Mischkreis Auf",
+            "component_id": "heizkreis_rl",
+            "tdw_ref": "aus nr=3 (O3, dig=3)",
+            "confidence": "hoch"
+          },
+          "4": {
+            "label_de": "Mischkreis Zu",
+            "component_id": "heizkreis_rl",
+            "tdw_ref": "aus nr=4 (O4, dig=0)",
+            "confidence": "hoch"
+          },
+          "5": {
+            "label_de": "Anfoerdung Oelbrenner",
+            "component_id": "kessel_oel",
+            "tdw_ref": "aus nr=5 (O5)",
+            "confidence": "hoch"
+          },
+          "6": {
+            "label_de": "Pumpe WW Zirkulation / Ladep.WW.5 (WW vom Oel)",
+            "component_id": "warmwasser",
+            "tdw_ref": "aus nr=6 (O6, bnr=5 bidx=5)",
+            "confidence": "hoch"
+          },
+          "7": {
+            "label_de": "Zirkulationspumpe",
+            "component_id": "warmwasser",
+            "tdw_ref": "aus nr=7 (O7, bnr=13 bidx=5, nl=10)",
+            "confidence": "hoch"
+          },
+          "8": {
+            "label_de": "Pumpe Heizkreis",
+            "component_id": "heizkreis_rl",
+            "tdw_ref": "aus nr=8 (O8)",
+            "confidence": "hoch"
+          },
+          "9": {
+            "label_de": "Ventil Heizungsruecklauf",
+            "component_id": "heizkreis_rl",
+            "tdw_ref": "aus nr=9 (O9, bgrp=2)",
+            "confidence": "hoch"
+          },
+          "10": {
+            "label_de": "(unused)",
+            "component_id": null,
+            "confidence": "hoch"
+          },
+          "11": {
+            "label_de": "(unused)",
+            "component_id": null,
+            "confidence": "hoch"
+          },
+          "12": {
+            "label_de": "(unused)",
+            "component_id": null,
+            "confidence": "hoch"
+          },
+          "13": {
+            "label_de": "(unused)",
+            "component_id": null,
+            "confidence": "hoch"
+          }
+        }
+      }
+    },
+    {
+      "device": "winsol:1",
+      "hw": "UVR1611",
+      "can_node": 1,
+      "tdw": "20211020_owner.tdw",
+      "logging_block": "CanDatLog DS2 (qu=7)",
+      "data_since": "2020-08-30T12:36:09",
+      "notes": "RAS-Logger (DS2) - wird von der UVR1611 (node 1) SELBST geloggt, NICHT von der UVR610. Deshalb loggt dev1 seit dem Logger-Start 2020-08 (PARQUET), lange vor der UVR610 (2021-10). Doppelte RAS-Belegung: dev1 (UVR1611) und dev2 (UVR610) liefern ab 2021-10 parallele RAS-Messungen.",
+      "channels": {
+        "A": {
+          "1": {
+            "label_de": "Offset Keller",
+            "component_id": "raum_keller",
+            "unit": "K",
+            "tdw_ref": "Setup.xml dev1 a1; UVR610 CAN A? (RAS-Offset)",
+            "confidence": "mittel"
+          },
+          "2": {
+            "label_de": "Temp Keller",
+            "component_id": "raum_keller",
+            "unit": "°C",
+            "tdw_ref": "Setup.xml dev1 a2",
+            "confidence": "hoch"
+          },
+          "3": {
+            "label_de": "(ANALOG 3 / unused)",
+            "component_id": null,
+            "confidence": "niedrig"
+          },
+          "4": {
+            "label_de": "Offset Erdgeschoss",
+            "component_id": "raum_eg",
+            "unit": "K",
+            "confidence": "mittel"
+          },
+          "5": {
+            "label_de": "Temp Erdgeschoss",
+            "component_id": "raum_eg",
+            "unit": "°C",
+            "confidence": "hoch"
+          },
+          "6": {
+            "label_de": "(ANALOG 6 / unused)",
+            "component_id": null,
+            "confidence": "niedrig"
+          },
+          "7": {
+            "label_de": "Offset Dachgeschoss",
+            "component_id": "raum_dg",
+            "unit": "K",
+            "confidence": "mittel"
+          },
+          "8": {
+            "label_de": "Temp Dachgeschoss",
+            "component_id": "raum_dg",
+            "unit": "°C",
+            "confidence": "hoch"
+          },
+          "9": {
+            "label_de": "(ANALOG 9 / unused)",
+            "component_id": null,
+            "confidence": "niedrig"
+          },
+          "10": {
+            "label_de": "(ANALOG 10 / unused)",
+            "component_id": null,
+            "confidence": "niedrig"
+          },
+          "11": {
+            "label_de": "Keller Minuten",
+            "component_id": "raum_keller",
+            "unit": "Std",
+            "tdw_ref": "Setup.xml dev1 a11",
+            "semantik_de": "Datenalter RAS Keller: Zeit seit letzter Funkübertragung des RAS-Elements (Sägezahn +0,1/min, Reset ~11 min); KEINE Heiz-Minuten (maintainer 2026-10-31). Feature-Store m1.1: ras_age_kell (Stunden-MAX)",
+            "confidence": "hoch"
+          },
+          "12": {
+            "label_de": "EG Minuten",
+            "component_id": "raum_eg",
+            "unit": "Std",
+            "tdw_ref": "Setup.xml dev1 a12",
+            "semantik_de": "Datenalter RAS EG: Zeit seit letzter Funkübertragung des RAS-Elements (Sägezahn +0,1/min, Reset ~11 min); KEINE Heiz-Minuten (maintainer 2026-10-31). Feature-Store m1.1: ras_age_eg (Stunden-MAX)",
+            "confidence": "hoch"
+          },
+          "13": {
+            "label_de": "DG Minuten",
+            "component_id": "raum_dg",
+            "unit": "Std",
+            "tdw_ref": "Setup.xml dev1 a13",
+            "semantik_de": "Datenalter RAS DG: Zeit seit letzter Funkübertragung des RAS-Elements (Sägezahn +0,1/min, Reset ~11 min); KEINE Heiz-Minuten (maintainer 2026-10-31). Feature-Store m1.1: ras_age_dg (Stunden-MAX)",
+            "confidence": "hoch"
+          },
+          "14": {
+            "label_de": "(unused)",
+            "component_id": null,
+            "confidence": "niedrig"
+          },
+          "15": {
+            "label_de": "(unused)",
+            "component_id": null,
+            "confidence": "niedrig"
+          },
+          "16": {
+            "label_de": "(unused)",
+            "component_id": null,
+            "confidence": "niedrig"
+          }
+        },
+        "D": {
+          "note": "Setup.xml dev1 d1..d13 = 'DIGITAL 1..13' (unbenutzt). Im Parquet: dev1_digital_01 loggt seit Logger-Start.",
+          "confidence": "niedrig"
+        }
+      }
+    },
+    {
+      "device": "winsol:2",
+      "hw": "UVR610",
+      "can_node": 32,
+      "tdw": "UVR610_32_20211029.tdw",
+      "logging_block": "DatLog A1..A16 / D1",
+      "data_since": "2021-10-31T00:00:03",
+      "notes": "UVR610 Solar+RAS-Logger (json:32 La/Ld). Inbetriebnahme 2021-10-31 (datengetreu aus Parquet). dev2 analog seit 2021-10; dev2 D1 (Solarpumpe) erst ab 2022-03-24 (LogX P=137). Doppelt mit dev1: dev2 a4..a9 = RAS (Keller/EG/OG RAS+Temp), gezogen UEBER CAN von node 1 (UVR610 CAN-Block A10..A15 knot=1).",
+      "channels": {
+        "A": {
+          "1": {
+            "label_de": "T.Speicher oben",
+            "component_id": "speicher_puffer",
+            "unit": "°C",
+            "tdw_ref": "UVR610 ein nr=1 (PT1000, bnr=6)",
+            "confidence": "hoch"
+          },
+          "2": {
+            "label_de": "T.Speicher mitte",
+            "component_id": "speicher_puffer",
+            "unit": "°C",
+            "tdw_ref": "ein nr=2 (PT1000, bnr=8)",
+            "confidence": "hoch"
+          },
+          "3": {
+            "label_de": "T.Speicher unten",
+            "component_id": "speicher_puffer",
+            "unit": "°C",
+            "tdw_ref": "ein nr=3 (PT1000, bnr=7)",
+            "confidence": "hoch"
+          },
+          "4": {
+            "label_de": "Keller RAS",
+            "component_id": "raum_keller",
+            "unit": "°C/RAS",
+            "tdw_ref": "CAN A10 (knot=1 ausg=10); Setup dev2 '10: Keller RAS 1'",
+            "confidence": "hoch"
+          },
+          "5": {
+            "label_de": "Keller Temp",
+            "component_id": "raum_keller",
+            "unit": "°C",
+            "tdw_ref": "CAN A11 (ausg=11); dev2 '11: Keller Temp 1'",
+            "confidence": "hoch"
+          },
+          "6": {
+            "label_de": "Erdgeschoss RAS",
+            "component_id": "raum_eg",
+            "unit": "°C/RAS",
+            "tdw_ref": "CAN A12 (ausg=12); dev2 '12: EG RAS 1'",
+            "confidence": "hoch"
+          },
+          "7": {
+            "label_de": "Erdgeschoss Temp",
+            "component_id": "raum_eg",
+            "unit": "°C",
+            "tdw_ref": "CAN A13 (ausg=13); dev2 '13: EG Temp 1'",
+            "confidence": "hoch"
+          },
+          "8": {
+            "label_de": "Dachgeschoss RAS",
+            "component_id": "raum_dg",
+            "unit": "°C/RAS",
+            "tdw_ref": "CAN A14 (ausg=14); dev2 '14: DG RAS 1'",
+            "confidence": "hoch"
+          },
+          "9": {
+            "label_de": "Dachgeschoss Temp",
+            "component_id": "raum_dg",
+            "unit": "°C",
+            "tdw_ref": "CAN A15 (ausg=15); dev2 '15: DG Temp 1'",
+            "confidence": "hoch"
+          },
+          "10": {
+            "label_de": "Keller HzRkl Ventil 2 Ergebnis (Ruecklaufminderer Keller)",
+            "component_id": "raum_keller",
+            "unit": "V (0..10)",
+            "tdw_ref": "DatLog A10 (DL qu=3 fid=1)",
+            "semantik_de": "Ruecklaufminderer Keller: 0 V = zu, 10 V = 100% offen, analog dazwischen (maintainer 2026-11-01). Aktuell binar 0/10 V geregelt (Messbefund 2025: 77% 0 / 23% 10 / 0% dazwischen). CMI-Anzeige '0,00 V'/'10,00 V'.",
+            "confidence": "hoch"
+          },
+          "11": {
+            "label_de": "EG HzRkl Ventil 2 Ergebnis (Ruecklaufminderer EG)",
+            "component_id": "raum_eg",
+            "unit": "V (0..10)",
+            "tdw_ref": "DatLog A11 (qu=3 fid=3)",
+            "semantik_de": "wie a10, Etage EG",
+            "confidence": "hoch"
+          },
+          "12": {
+            "label_de": "OG HzRkl Ventil 2 Ergebnis (Ruecklaufminderer OG)",
+            "component_id": "raum_dg",
+            "unit": "V (0..10)",
+            "tdw_ref": "DatLog A12 (qu=3 fid=5)",
+            "semantik_de": "wie a10, Etage OG",
+            "confidence": "hoch"
+          },
+          "13": {
+            "label_de": "Keller HzRkl Ventil 1",
+            "component_id": "raum_keller",
+            "unit": "% (Setup); Werte ~18-61, Oeffnung Q-112",
+            "tdw_ref": "DatLog A13 (qu=1 eanr=1)",
+            "semantik_de": "Offen (Q-112): zweites Ventil je Minderer (Stellung) oder Temperatur? Werte ~18-61 (O ~31), korreliert mit Heizkreis-VL (-0,61..-0,75) und Ventil 2 a10 (+0,61).",
+            "confidence": "niedrig"
+          },
+          "14": {
+            "label_de": "OG HzRkl Ventil 1",
+            "component_id": "raum_dg",
+            "unit": "% (Setup)",
+            "tdw_ref": "DatLog A14 (qu=1 eanr=2)",
+            "semantik_de": "wie a13 (Q-112), Etage OG",
+            "confidence": "niedrig"
+          },
+          "15": {
+            "label_de": "EG HzRkl Ventil 1",
+            "component_id": "raum_eg",
+            "unit": "% (Setup)",
+            "tdw_ref": "DatLog A15 (qu=1 eanr=3)",
+            "semantik_de": "wie a13 (Q-112), Etage EG",
+            "confidence": "niedrig"
+          },
+          "16": {
+            "label_de": "T. Kollektor",
+            "component_id": "solar_system",
+            "unit": "°C",
+            "tdw_ref": "ein nr=4 (PT1000, bnr=1, skorr=-7)",
+            "confidence": "hoch"
+          }
+        },
+        "D": {
+          "1": {
+            "label_de": "Solarpumpe",
+            "component_id": "solar_system",
+            "tdw_ref": "aus nr=1 (O1); DatLog D1; Setup dev2 d1",
+            "data_since": "2022-03-24T14:50:25",
+            "confidence": "hoch"
+          },
+          "note": "Setup dev2 d7..d10 ('Ventil-HzRL 1/2/3','Solarpumpe 1') sind BDB-Labels, aber im DatLog nicht aktiv (D2..D10 eanr=0). JSON-API node32 liefert nur 1 digitales Logging-Kanal (d1).",
+          "7": {
+            "label_de": "(BDB: Ventil-HzRL 1, nicht aktiv geloggt)",
+            "confidence": "niedrig"
+          },
+          "8": {
+            "label_de": "(BDB: Ventil-HzRL 2, nicht aktiv geloggt)",
+            "confidence": "niedrig"
+          },
+          "9": {
+            "label_de": "(BDB: Ventil-HzRL 3, nicht aktiv geloggt)",
+            "confidence": "niedrig"
+          },
+          "10": {
+            "label_de": "(BDB: Solarpumpe 1, nicht aktiv geloggt)",
+            "confidence": "niedrig"
+          }
+        }
+      }
+    }
+  ],
+  "settable": {
+    "note": "9 setzbare Adressen (L1-Whitelist). Authoritative CAN-Adresse (idx/sub) aus CMI-WEB/CMI-WEB.xml (2022). Display-Adresse (10N.../x2) + Bezeichnung + aktueller Wert = live_1.cgi + assets/schematics/1.html-Layout (Proximity-Regel, identisch mit app/cmi/schematic_parser.py). WICHTIGE Korrektur: Oelbrenner = 10520A10180 (aktuell AUTO/AUS); der einzige HAND/EIN-Schalter ist 10920A10180 = Ventil HzRkl. DAFUER: memory.md/Plan.md (2026-10-27) notierten 'Oelbrenner aktuell HAND/EIN' -> DISCREPANCY (siehe corrections_and_flags).",
+    "elements": [
+      {
+        "address": "101301D0180",
+        "changeadr": "019001301D",
+        "label_de": "Betriebsmodus (HEIZKR. Betriebsart)",
+        "component_id": "uvr1611",
+        "can_ref": "idx=12317 sub=1 (node 1)",
+        "options": [
+          "STANDBY",
+          "ZEIT/AUTO",
+          "NORMAL",
+          "ABGESENKT",
+          "PARTY",
+          "URLAUB",
+          "FEIERTAG"
+        ],
+        "current": "NORMAL",
+        "risk": false,
+        "confidence": "hoch"
+      },
+      {
+        "address": "10040912091",
+        "changeadr": "20000040911202 (x2)",
+        "label_de": "Solarpumpe Modus (Hand/Auto)",
+        "component_id": "solar_system",
+        "can_ref": "idx=8337 sub=0 (node 32)",
+        "options": [
+          "Hand/AUS",
+          "Hand/EIN",
+          "Auto"
+        ],
+        "current": "Auto",
+        "risk": false,
+        "confidence": "hoch"
+      },
+      {
+        "address": "10520A10180",
+        "changeadr": null,
+        "label_de": "Oelbrenner (Anfoerdung Oelbrenner)",
+        "component_id": "kessel_oel",
+        "can_ref": "idx8353 sub5 (Anf.Brenner, node 1) - CMI-WEB 2022",
+        "options": [
+          "AUS",
+          "EIN",
+          "AUTO"
+        ],
+        "current": "AUTO/AUS",
+        "current_note": "live_1.cgi (2026-10-26): pos23=10520A10180 'AUTO/AUS', pos24 Label 'Oelbrenner'. WICHTIG: Plan.md/memory.md (2026-10-27) notierten Oelbrenner 'aktuell HAND/EIN' -> DISCREPANCY, live-Re-Read empfohlen (kein CMI-Call in dieser Task).",
+        "risk": true,
+        "risk_reason": "Oelbrenner - Oelverbrennung. S4-2 Bestaetigungs-Dialog + S3-1 Whitelist-Read-back PFLICHT.",
+        "confidence": "hoch"
+      },
+      {
+        "address": "10920A10180",
+        "changeadr": null,
+        "label_de": "Ventil Heizungsruecklauf (Vent. HzRL)",
+        "component_id": "heizkreis_rl",
+        "can_ref": "idx8353 sub9 (Vent. HzRL, node 1)",
+        "options": [
+          "AUS",
+          "EIN",
+          "AUTO"
+        ],
+        "current": "HAND/EIN",
+        "risk": false,
+        "risk_note": "Nicht der Oelbrenner. live_1.cgi pos25=10920A10180 'HAND/EIN', pos26 Label 'Ventil HzRkl'.",
+        "confidence": "hoch"
+      },
+      {
+        "address": "10820A10180",
+        "changeadr": "01910820A1",
+        "label_de": "Pumpe Heizkreis",
+        "component_id": "heizkreis_rl",
+        "can_ref": "idx8353 sub8 (Pumpe-Hzkr, node 1)",
+        "options": [
+          "AUS",
+          "EIN",
+          "AUTO"
+        ],
+        "current": "AUTO/EIN",
+        "risk": false,
+        "confidence": "hoch"
+      },
+      {
+        "address": "10120A10180",
+        "changeadr": null,
+        "label_de": "Pumpe Holzofen (Pumpe Holzo.)",
+        "component_id": "kessel_holz",
+        "can_ref": "idx8353 sub1 (Pumpe Holzo., node 1)",
+        "options": [
+          "AUS",
+          "EIN",
+          "AUTO"
+        ],
+        "current": "AUTO/EIN",
+        "risk": false,
+        "confidence": "hoch"
+      },
+      {
+        "address": "10620A10180",
+        "changeadr": null,
+        "label_de": "Ladepumpe WW (Ladep.WW.)",
+        "component_id": "warmwasser",
+        "can_ref": "idx8353 sub2 (Ladep.WW., node 1)",
+        "options": [
+          "AUS",
+          "EIN",
+          "AUTO"
+        ],
+        "current": "AUTO/AUS",
+        "risk": false,
+        "confidence": "hoch"
+      },
+      {
+        "address": "10220A10180",
+        "changeadr": null,
+        "label_de": "WW vom Oel / Ladep.WW.5",
+        "component_id": "warmwasser",
+        "can_ref": "idx8353 sub6 (Ladep.WW.5, node 1)",
+        "options": [
+          "AUS",
+          "EIN",
+          "AUTO"
+        ],
+        "current": "AUTO/AUS",
+        "risk": false,
+        "confidence": "hoch"
+      },
+      {
+        "address": "10720A10180",
+        "changeadr": null,
+        "label_de": "Zirkulation (Pumpe-Zirku5)",
+        "component_id": "warmwasser",
+        "can_ref": "idx8353 sub7 (Pumpe-Zirku5, node 1)",
+        "options": [
+          "AUS",
+          "EIN",
+          "AUTO"
+        ],
+        "current": "AUTO/AUS",
+        "risk": false,
+        "confidence": "hoch"
+      }
+    ],
+    "canonical_map_from_cmi_web_2022": {
+      "O1_Pumpe_Holzo": "idx8353 sub1",
+      "O2_Ladep_WW": "idx8353 sub2",
+      "O5_Anf_Brenner": "idx8353 sub5",
+      "O6_Ladep_WW5": "idx8353 sub6",
+      "O7_Pumpe_Zirku": "idx8353 sub7",
+      "O8_Pumpe_Hzkr": "idx8353 sub8",
+      "O9_Vent_HzRL": "idx8353 sub9",
+      "Betriebsart": "idx12317 sub1",
+      "Solarpumpe": "idx8337 sub0 (node32)",
+      "Vorlaufsolltemperatur_readonly": "idx12360 sub1"
+    }
+  },
+  "live": [
+    {
+      "schematic_page": 1,
+      "area_de": "Start / Kamin",
+      "key_values": [
+        "Betriebsmodus",
+        "Pumpe Heizkreis",
+        "Solarpumpe Modus",
+        "Pumpe Holzofen",
+        "Zirkulation",
+        "Ladepumpe WW",
+        "WW vom Oel",
+        "Oelbrenner",
+        "Ventil HzRkl",
+        "Außentemp",
+        "Speicher Oben/Mitte/Unten",
+        "Holzkessel Vorlauf",
+        "Abgas"
+      ],
+      "settable": [
+        "101301D0180",
+        "10040912091",
+        "10120A10180",
+        "10220A10180",
+        "10520A10180",
+        "10620A10180",
+        "10720A10180",
+        "10820A10180",
+        "10920A10180"
+      ]
+    },
+    {
+      "schematic_page": 2,
+      "area_de": "Warmwasser",
+      "key_values": [
+        "Speicher Oben",
+        "Speicher Mitte",
+        "Speicher Unten",
+        "Warmwasser",
+        "Ladepumpe WW",
+        "Zirkulationspumpe",
+        "Oel-Ladepumpe"
+      ],
+      "settable": [
+        "10620A10180",
+        "10220A10180",
+        "10720A10180"
+      ]
+    },
+    {
+      "schematic_page": 3,
+      "area_de": "Raum / Heizkreis",
+      "key_values": [
+        "Keller Raumtemperatur",
+        "EG Raumtemperatur",
+        "Dachgeschoss Raumtemperatur",
+        "Oelkessel Vorlauf",
+        "Heizkreis VL/RL",
+        "Aussen Temp",
+        "Soll VL Temp",
+        "Betriebsmodus",
+        "Pumpe Heizkreis (Status)"
+      ],
+      "settable": [
+        "101301D0180",
+        "10820A10180"
+      ]
+    },
+    {
+      "schematic_page": 4,
+      "area_de": "Solar",
+      "key_values": [
+        "Kollektor",
+        "Speicher Oben",
+        "Speicher Mitte",
+        "Speicher Unten",
+        "Solarpumpe",
+        "Solarpumpe Modus"
+      ],
+      "settable": [
+        "10040912091"
+      ]
+    },
+    {
+      "schematic_page": 5,
+      "area_de": "Kamin",
+      "key_values": [
+        "Speicher Oben/Mitte/Unten",
+        "Holzkessel Vorlauf",
+        "Abgas Holz AN/AUS",
+        "Pumpe Holzofen",
+        "Min 50C"
+      ],
+      "settable": [
+        "10120A10180"
+      ]
+    }
+  ],
+  "suggested_areas": [
+    {
+      "page": 1,
+      "name_de": "Start / Dashboard-Kern",
+      "focus": "Betriebsmodus + alle Setzelemente + Speicher-Oben/Mitte/Unten + Außentemp",
+      "primary_components": [
+        "uvr1611",
+        "speicher_puffer",
+        "kessel_holz",
+        "kessel_oel"
+      ]
+    },
+    {
+      "page": 2,
+      "name_de": "Warmwasser",
+      "focus": "WW-Temperatur + Ladepumpen/Zirkulation + Oel-Ladepumpe",
+      "primary_components": [
+        "warmwasser",
+        "speicher_puffer",
+        "kessel_oel"
+      ]
+    },
+    {
+      "page": 3,
+      "name_de": "Raum / Heizkreis",
+      "focus": "3 RAS-Raumtemperaturen (Keller/EG/OG) + VL/RL + Mischkreis + Betriebsmodus + Heizkreis-Pumpe",
+      "primary_components": [
+        "heizkreis_rl",
+        "raum_keller",
+        "raum_eg",
+        "raum_dg"
+      ]
+    },
+    {
+      "page": 4,
+      "name_de": "Solar",
+      "focus": "Kollektor-Temperatur + Solar-Speicher-T + Solarpumpe-Status/Modus",
+      "primary_components": [
+        "solar_system",
+        "uvr610"
+      ]
+    },
+    {
+      "page": 5,
+      "name_de": "Kamin / Festbrennstoff",
+      "focus": "Holzkessel VL + Abgas-Temp + Abgas AN/AUS + Holzkessel-Pumpe + Laufzeit",
+      "primary_components": [
+        "kessel_holz",
+        "abgas_holz"
+      ]
+    }
+  ],
+  "corrections_and_flags": [
+    "dev1 (RAS Keller/EG/DG) wird von der UVR1611 (node 1, DS2/CanDatLog qu=7) geloggt, NICHT von der UVR610. Konsequenz: dev1 loggt seit Logger-Start 2020-08-30 (PARQUET), NICHT erst seit der UVR610 (2021-10). -> docs/plant-model.md + timeline + devices[1].",
+    "Doppelte RAS-Belegung: dev1 (UVR1611) UND dev2 (UVR610 a4..a9) liefern ab 2021-10 parallele RAS-Messungen (dev2 zieht die RAS-Werte ueber CAN von node 1). Fuer S6-Features: RAS-Raumtemperatur aus EINER Quelle waehlen (Vorschlag: dev2 ab 2021-10, davor dev1).",
+    "Quelle 'UVR610 Node 32 (x2, ...)' in memory.md/Plan.md: es ist EIN UVR610 @ node 32 mit Doppelrolle (Solar HzRl + RAS-Logger), nicht zwingend zwei physikalische Geraete.",
+    "Oelbrenner (10520A10180) ist riskant (Oelverbrennung) - S4-2 Bestaetigungs-Dialog + S3-1 Whitelist-Read-back erforderlich. DISCREPANCY: live_1.cgi (2026-10-26) zeigt Oelbrenner = AUTO/AUS; der einzige HAND/EIN-Schalter ist 10920A10180 = Ventil HzRkl. memory.md/Plan.md (2026-10-27) notierten 'Oelbrenner aktuell HAND/EIN' -> live-Read-back VOR dem ersten Oelbrenner-Write erforderlich (kein CMI-Call in dieser Task).",
+    "Display-Adresse (10N...10180) <-> CAN-idx8353-subN <-> O_N-Zuordnung der 7 Schalter: HOCH (CMI-WEB-2022 + live-Layout + live-Wert abgeglichen, s. canonical_map_from_cmi_web_2022). Vor dem ersten Write trotzdem S1-2 Changer-Resolver (changeadr + live-Optionsliste) als definitive Read-back.",
+    "GLEICHER KANAL-INDEX, ANDERE BEDEUTUNG PRO GERÄT (maintainer 2026-11-01, Screenshots docs/Screenshots/): UVR1611 hat ZWEI Log-Blöcke, UVR610 EINEN. WinSol-Nummerierung: 1/anaX = UVR1611-Heizung (dev0), 2/anaX = UVR1611-RAS (dev1), 3/anaX = UVR610 (dev2). a10: dev0 = ABGAS (x10), dev1 = UNUSED, dev2 = MINDERER Keller. a11/a12: dev1 = Keller/EG Minuten (ras_age), dev2 = MINDERER EG/OG. D.h. die RÜCKLAUFMINDERER a10-a12 sind NUR auf der UVR610 (dev2, das dritte Gerät), nicht auf der UVR1611. Screenshot-Beleg 31.10.2026 09:24:06: 2/Ana2=20,5 (Keller Ist, dev1 a2), 2/Ana5=22,1 (EG a5), 2/Ana8=19,0 (DG a8), 1/Ana8=5,7 (Aussen, dev0 a8), 2/Ana11-13=Keller/EG/DG Minuten (dev1 ras_age), 2/Ana1/4/7=Perzipiert/Offset (dev1), 3/Ana10-12=Minderer Keller/EG/OG = 0,00/10,00/0,00 V (dev2).",
+    "RAS-Regel-Semantik (maintainer 2026-11-01): RAS zur Referenz 20 C; perzipiert (dev1 a1/a4/a7, Setup-Label 'Offset') = Ist + Offset in C; Ziel auf Ist = 20 - Offset. Beispiel 31.10.2026 09:24:06 (Rosetta exakt): Keller a1=24,0 a2=20,5 (Offset +3,5 K), EG a4=20,2 a5=22,1, DG a7=20,4 a8=19,0, Aussen dev0 a8=5,7.",
+    "Minderer dev2 a10-a12 = Ruecklaufminderer Keller/EG/OG (UVR610 = 3. Geraet) in 0-10 V (0=zu, 10=100% offen, Schritte dazwischen moeglich; aktuell binar 0/10 geregelt, 2025: 77% 0 / 23% 10). **Korrektur 2026-11-01 (maintainer): die Minderer sind IM CMI-Log** — WinSol hat als einzige Quelle das CMI-Log und zeigt die Werte (Screenshot 31.10.2026 09:24:06: 0,00 V / 10,00 V / 0,00 V), d.h. jeder WinSol-Wert stammt aus dem CMI-Log. Unser cmi_log_pq (Gateway-/LOG-Ingestion) erfasst dev2 a10-a12 aktuell NICHT (0/38.558; a13-a15 sind erfasst) cmi_log_pq enthaelt a10-a12 nicht; der Decoder app/cmi/cmi_log.py ordnet bewusst nur 36 Analogkanaele zu. Ob die Roh-/LOG-Daten a10-a12 enthalten, ist OFFEN (passende Rohpositionen zeigen Werte um 21, 20-22, 42-49, nicht 0/10). Live ueber JSON-API (history.db, json:32 ch10-12, seit 27.10.); exakte Regel: offen < 20,1C perzipiert, zu > 20,1C, bei Gleichstand halten (Korrelation 0,999), m1.3 leitet hzrkl_{z}_rule ab. Q-112b nicht dringend. winsol_pq (WinSol-Bestand) hat sie historisch bis 27.10. 07:25. Minderer in v002-Features = hzrkl_*_on (0..1 = V/10) + hzrkl_*_pos (a13-a15).",
+    "Pufferspeicher = 900 L (maintainer 2026-11-01). L1-Relevanz: Puffer-Zonen = Lade/Entladung via Pumpen. Geloggt (stundenweise An/Aus-Anteil): pump_hz_on O8/d8, oel_burner_on O5/d5, pump_solar_on dev2 d1, valve_hzrl_on O9/d9 (Ruecklaufweg: Puffer vs Oelheizung), pump_ww_on O2/d2, pump_ww_oil_on O6/d6, pump_circ_on O7/d7, mix_open_on O3/d3, mix_close_on O4/d4. NICHT geloggt: O1 Holzpumpe dev0 d1 (LogX-Start d2, Proxy pump_wood_est_on), Pumpen-Geschwindigkeit (unterschiedlich). Kumulierte Laufzeit ist keine Luecke: m1.3 {sig}_sum{3,6,12,24}h/{sig}_since_h aus den An-Quotienten. O2 (pump_ww) = Oel->Puffer-oben-Ladepumpe (+5,4 K/h, laedt; Regel Oel-VL > Puffer oben + 24,6 K). O6 (pump_ww_oil) an O7 (pump_circ, Zirkulation, bedarfsabhaengig) gekoppelt, Waermetauscher aus Puffer oben, Laufzeit je ca. 19,8%. O9 an = Ruecklauf -> Puffer, aus = -> Oelkessel; Schaltbedingung Puffer Mitte > HK-Ruecklauf + 5K (o9_switch_margin), Wirkung Puffer Mitte -0,73 K/h (an) bzw. +0,32 K/h (aus). O5 Oelbrenner: ca. 78% des Vorhersagefehlers Puffer Mitte +4h (kein Messfehler; Fuehler plausibel 11,0-91,6C); v004: UVR-Regeln (O5/O2/O9) als Szenario-Eingang.",
+    "HzRkl Ventil 1 (dev2 a13-a15): Klarstellung 2026-11-01 — Werte ~18-61, CMI-JSON-API (live-Endpunkt, json:32 ch13-15) gibt Einheit C an (z. B. Keller 28,4 / OG 34,5 / EG 34,8 C) -> TEMPERATUR am Minderer, keine Ventilstellung. Feature hzrkl_*_pos (Name 'pos' ist irrefuehrend, Einheit C). Korreliert positiv mit hz_vl (+0,81/+0,93/+0,88) und Ventil 2 a10 (+0,61). Spaltenname _pos bleibt aus Kompatibilitaetsgruenden."
+  ]
+}
