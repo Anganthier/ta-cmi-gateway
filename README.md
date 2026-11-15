@@ -175,7 +175,7 @@ syntax-checked with `node --check`.
 
 ## License
 
-[AGPL-3.0](./LICENSE) — see the `LICENSE` file for the full text.
+[GPL-3.0](./LICENSE) — see the `LICENSE` file for the full text.
 Copyright (C) 2026 Anganthier.
 
 ## Disclaimer

@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "C.M.I. Gateway: read-only FastAPI gateway in front of the TA CMI heating control (schematic + JSON-API + changer resolver)."
 readme = "README.md"
 requires-python = ">=3.12"
-license = { text = "AGPL-3.0" }
+license = { text = "GPL-3.0" }
 authors = [{ name = "Anganthier" }]
 dependencies = [
     "fastapi>=0.110",
