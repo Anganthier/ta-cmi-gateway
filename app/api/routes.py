@@ -86,6 +86,12 @@ class HealthView(BaseModel):
     winsol: dict
     #: S4N-LogPoll: CMI /LOG poller status (error flag, last poll, last ingest).
     cmi_log: dict
+    #: v0.6-A' Phase 2: autonomer Minderer-Regelkreis Zone EG (Kill-Switch/
+    #: Rolle, letzter Zyklus, letzte Entscheidung, a18-Verifikation).  v2:
+    #: ``last_decision`` trägt zusätzlich ``o8_on_frac`` (float|null),
+    #: Kill-Gründe u. a. ``no-flow`` (O8-Pumpen-Gate) und ``dt-invalid``;
+    #: das Block-Schema rendert generisch (dict), kein Schema-Bruch.
+    minderer_loop: dict
 
 
 # ---------------------------------------------------------------------------
@@ -176,6 +182,13 @@ async def health(request: Request) -> JSONResponse:
                           "last_ingested_files": 0,
                           "store": {"available": False, "dir": None, "months": None}}
 
+    # v0.6-A' Phase 2: Minderer-Loop-Status (Kill-Switch/Rolle + letzter
+    # Zyklus + a18-Verifikation; inaktiv = langer No-op, 0 CMI-Verkehr).
+    try:
+        minderer_loop_status = gateway.minderer_loop_status()
+    except Exception:  # noqa: BLE001 - health must not crash on a poller problem
+        minderer_loop_status = {"error": "unavailable"}
+
     body = HealthView(
         status="ok" if cmi_reachable else "down",
         gateway={"status": "running", "version": request.app.state.version},
@@ -197,6 +210,7 @@ async def health(request: Request) -> JSONResponse:
         history=history_status,
         winsol=winsol_status,
         cmi_log=cmi_log_status,
+        minderer_loop=minderer_loop_status,
     )
     status_code = 200 if cmi_reachable else 503
     return JSONResponse(status_code=status_code, content=body.model_dump())

@@ -46,6 +46,7 @@ import numpy as np
 from analysis.model.m2b.features import apply_offset_step, vlst_est
 
 from . import config, executability, weather
+from . import minderer_curve as minderer_cv
 from . import rm_diagnostics as rm_diag
 from . import vl_calibration as vl_cal
 from . import vl_minimum as vl_min
@@ -474,6 +475,29 @@ def load_vl_minimum(
     return vl_min.load_vl_minimum(vl_min.vl_minimum_path(_features_data_root(features_dir)))
 
 
+def load_minderer_curve(
+    features_dir: Path | None = None,
+    path: Path | None = None,
+) -> dict[str, Any] | None:
+    """Minderer-V→ΔT-Kurven-Artefakt (Cache, v0.6-A) laden; ``None`` wenn
+    fehlt/ungültig → linear-Fallback (v0.5-Verhalten bleibt exakt, s.
+    :func:`minderer_v_target_v` + :func:`_minderer_advisories`).
+
+    Pro ``recommend()`` wird das Cache-Artefakt gelesen (kein
+    Historie-Scan). Das Artefakt wird **einmalig** von
+    :func:`minderer_cv.build_minderer_curve` (CLI ``python -m
+    analysis.model.l2 calibrate-minderer-curve``) geschrieben
+    (``data/l2/minderer_curve.json``, im Gateway ``/data/l2/``) — Trennung
+    dokumentiert (Rebuild-Befehl im Artefakt + Doku). ``path`` (explizit)
+    überschreibt den Daten-Root-Pfad (Tests).
+    """
+    if path is not None:
+        return minderer_cv.load_minderer_curve(path)
+    return minderer_cv.load_minderer_curve(
+        minderer_cv.minderer_curve_path(_features_data_root(features_dir))
+    )
+
+
 # --- Kosten ---
 
 
@@ -786,6 +810,7 @@ def tier_b_advisories(
     rm_diag: dict[str, Any] | None = None,
     vl_calib: dict[str, Any] | None = None,
     vl_min_art: dict[str, Any] | None = None,
+    minderer_curve: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Heizkurve/VL-Soll + WW + Zirkulation + (v0.5) Minderer + Pumpe O8.
 
@@ -806,6 +831,12 @@ def tier_b_advisories(
     (Recover → datenbasiert → v0.5-Standardkurve-Fallback, s.
     :func:`_vl_curve_advice`); ``None`` (Cache fehlt) = exakt das
     v0.5-Verhalten (Datenmangel = Fallback unverändert).
+
+    v0.6-A: ``minderer_curve`` (Minderer-V→ΔT-Kurven-Artefakt, Cache) →
+    V-Ziel im Minderer-Block (A) aus der datenbasierten Kennlinie
+    (2-Faktor, last-normalisiert; Inverse + Guards); ``None`` (Cache
+    fehlt / Zone nicht usable) = exakt das v0.5-lineare Verhalten
+    (Regression, s. :func:`_minderer_advisories`).
     """
     out: list[dict[str, Any]] = []
     buff_top = _h(state.rows.get("buff_top")) or 0.0
@@ -921,7 +952,7 @@ def tier_b_advisories(
             }
         )
     # --- (4) v0.5 Ticket A: Minderer-Empfehlung (Advisory, je aktivem Kreis) ---
-    out.extend(_minderer_advisories(state, rm_diag, discovery))
+    out.extend(_minderer_advisories(state, rm_diag, discovery, minderer_curve))
     # --- (5) v0.5 Ticket B: Pumpen-Empfehlung O8 (Advisory, Gating Kondition) ---
     out.extend(_pump_o8_advisories(rm_diag, discovery))
     return out
@@ -1200,33 +1231,41 @@ def minderer_v_target_v(
     delta_t_c: float,
     current_v: float,
     target_c: float | None = None,
+    ext_c: float | None = None,
+    curve: dict[str, Any] | None = None,
 ) -> float:
-    """V-Ziel (V, 0…10) aus der ΔT-Fehlmenge (Ticket A, linear, **geschätzt**).
+    """V-Ziel (V, 0…10) aus der ΔT-Fehlmenge (Ticket A).
 
-    ``ΔT < Ziel`` (Fluss zu schnell, maintainer-Kriterium) →
-    ``V_Ziel = V_aktuell · (1 − (Ziel − ΔT)/Ziel)`` — lineare Abschätzung der
-    Drossel-Stellung, die den ΔT-Fehlanteil deckt; gekappt bei ``0 V``
-    („max. zu“). ``ΔT ≥ Ziel`` (im Ziel/zu groß) → ``V_max`` (10 V, kein
-    Schließen). Monoton: größere ΔT-Fehlmenge → kleineres V-Ziel (mehr
-    schließen). ``current_v`` = **Ist-Vorgabe** = Sollspannung a17/18/19
-    (statischer Fixwert, UVR-extern setzbar; v0.5-engine-rework,
-    2026-11-12). **Linear geschätzt** (maintainer: „erst linear annehmen, dann
-    messen, dann Kurve“) — keine V→ΔT-Messcharakteristik in der Historie;
-    Erfahrungstabelle/Messung pro Strang folgt ab der UVR-Änderung (v0.6).
+    **v0.6-A (datenbasiert):** mit ``curve`` (usables Zone-Entry aus dem
+    Minderer-Kurven-Cache, ``usable=True`` + ``a/b/c``) **und** ``ext_c``
+    (IST-Außen-T) → Inverse der 2-Faktor-V→ΔT-Kennlinie
+    ``V = a / (ΔT_ziel − b·ext − c)`` (hyperbolisch, last-normalisiert;
+    Guards: Nenner ≤ 0,5 K → ``V_MAX``, ``clip(V, 0, 10)`` + Klemme
+    ``min(V, v_now)``). Delegiert an
+    :func:`analysis.model.l2.minderer_curve.v_from_dt_target` (Single Source
+    of Truth).
+
+    **Fallback (v0.5, exakt linear-altes Verhalten):** ``curve=None``
+    (kein Zone-Fit / < 2 Punkte / Cache fehlt) **oder** ``ext_c=None``
+    (keine Außen-T) → ``V_Ziel = V_aktuell · (1 − (Ziel − ΔT)/Ziel)``,
+    gekappt bei ``0 V`` („max. zu“); ``ΔT ≥ Ziel`` → ``V_max`` (10 V).
+    Monoton: größere ΔT-Fehlmenge → kleineres V-Ziel. ``current_v`` =
+    **Ist-Vorgabe** = Sollspannung a17/18/19 (statischer Fixwert,
+    UVR-extern setzbar; v0.5-engine-rework, 2026-11-12).
+
+    Aufruf ohne ``ext``/``curve`` = exakt das alte (lineare) Verhalten
+    (Signatur-Rückwärtskompatibilität, Regressionstest).
     """
-    tgt = config.RM_DELTA_T_TARGET_C if target_c is None else target_c
-    current_v = float(np.clip(current_v, 0.0, config.RM_V_MAX))
-    gap = tgt - float(delta_t_c)
-    if gap <= 0.0:
-        return config.RM_V_MAX
-    close_frac = gap / tgt if tgt > 0.0 else 1.0
-    return float(np.clip(current_v * (1.0 - close_frac), 0.0, config.RM_V_MAX))
+    return minderer_cv.v_from_dt_target(
+        delta_t_c, current_v, target_c=target_c, ext_c=ext_c, curve=curve
+    )
 
 
 def _minderer_advisories(
     state: State,
     rm_diag: dict[str, Any] | None,
     discovery: Any,
+    minderer_curve: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Ticket A-Block: Minderer-Feinjustierung je aktivem Heizkreis.
 
@@ -1242,11 +1281,20 @@ def _minderer_advisories(
     Block stumm. ΔT je Kreis aus der Ticket-D-Diagnose (lag-korrigiert):
     ΔT < Ziel − Toleranz → „Sollspannung runter (drosseln)“,
     ΔT > Ziel + Toleranz → „in Richtung 10 V öffnen“, dazwischen →
-    „beibehalten“ — pro Strang (EG/DG/Keller) separat. V-Ziel bleibt
-    **linear** (maintainer: „erst linear annehmen, dann messen, dann Kurve“);
-    V→ΔT-Kennlinie pro Strang wird ab 07.11 aus Daten gelernt (v0.6).
-    ``executability = advisory-uvr`` (UVR-extern/UVR-Programm-Änderung,
-    TA-Designer; Q-108-Analog).
+    „beibehalten“ — pro Strang (EG/DG/Keller) separat.
+
+    **v0.6-A (datenbasiert, 2026-11-18):** ``minderer_curve`` (Zone-Kurven-
+    Cache-Artefakt, :func:`load_minderer_curve`) + **IST-Außen-T** (aus
+    ``state``, dieselbe Quelle wie die anderen Tier-B-Blöcke:
+    ``_f(state.rows.get("ext"))``) → V-Ziel aus der **V→ΔT-Kennlinie**
+    (2-Faktor, last-normalisiert; Inverse + Guards in
+    :func:`analysis.model.l2.minderer_curve.v_from_dt_target`). Advisory-
+    Text: datenbasiert → „datenbasiert (n Punkte, last-normalisiert)“;
+    OoR-Außen-T-Flag (außerhalb des Fit-Kalibrierungsbands) → zusätzlicher
+    Hinweis (kein Stopp); Zone ohne usables Fit (Keller/DG: < 2 Phasen-
+    Punkte) → **Fallback linear exakt altes Verhalten** (Text „linear
+    geschätzt“ unverändert). ``executability = advisory-uvr``
+    (UVR-extern/UVR-Programm-Änderung, TA-Designer; Q-108-Analog).
     """
     out: list[dict[str, Any]] = []
     if rm_diag is None or not rm_diag.get("active"):
@@ -1256,6 +1304,7 @@ def _minderer_advisories(
     active = [z for z in config.ZONES if float(rm_open_2h.get(z, 0.0)) >= config.RM_ACTIVE_QUOTA]
     if not active:
         return out
+    ext_now = _f(state.rows.get("ext"))
     per_zone = rm_diag.get("per_zone") or {}
     for z in active:
         off2 = float(rm_open_2h.get(z, 0.0))
@@ -1270,21 +1319,54 @@ def _minderer_advisories(
         auf_txt = "Minderer aktuell auf" if off2 > 0.0 else "Minderer im 2-h-Fenster zu"
         dt = (per_zone.get(z) or {}).get("delta_t_c")
         tol = config.RM_DT_OK_TOL_K
+        # v0.6-A: usables Zone-Fit (Cache-Read; None → linear-Fallback).
+        z_fit = minderer_cv.zone_entry(minderer_curve, z)
+        basis_txt = "linear geschätzt"
+        oor_txt = ""
+        if z_fit is not None and ext_now is not None:
+            oob = minderer_cv.ext_oob_flag(minderer_curve, z, ext_now)
+            n_fit = int(z_fit.get("n_points") or 0)
+            basis_txt = f"datenbasiert ({n_fit} Punkte, last-normalisiert)"
+            if z_fit.get("out_of_throttle_regime"):
+                basis_txt += "; 10-V-Punkt außerhalb des Drossel-Regimes (Sättigung, Kontext)"
+            if oob:
+                oor_txt = (
+                    f" (Außen-T {ext_now:.1f} °C außerhalb des "
+                    f"Kalibrierungsbands {z_fit.get('ext_min')}…{z_fit.get('ext_max')} °C — "
+                    "Extrapolation, mit Vorsicht)"
+                )
+        else:
+            z_fit = None
+        if z_fit is not None:
+            basis_detail = (
+                f"V-Ziel aus der datenbasierten V→ΔT-Kennlinie ({basis_txt}), "
+                "Inverse V = a/(ΔT_ziel − b·Außen − c), Guards: Nenner ≤ 0,5 K → "
+                "10 V, Klemme 0–10 V + min(V, v_now) (nie über die aktuelle "
+                "Vorgabe hinaus öffnen)."
+            )
+        else:
+            basis_detail = (
+                "Linearer Ansatz (V-Ziel = Sollspannung × ΔT-Quotient, ohne "
+                "Datenbasis); V→ΔT-Kennlinie pro Strang (EG/DG/Keller) wird ab 07.11 "
+                "aus Daten gelernt (v0.6)."
+            )
         if dt is not None:
-            v_tz = minderer_v_target_v(dt, v_now)
+            v_tz = minderer_v_target_v(dt, v_now, ext_c=ext_now, curve=z_fit)
             if dt < config.RM_DELTA_T_TARGET_C - tol:
                 vorgeschlagen = (
                     f"Sollspannung runter (drosseln): {v_now:.1f} V → ~{v_tz:.1f} V "
-                    f"(linear geschätzt)"
+                    f"({basis_txt})"
                 )
                 akt_txt = (
-                    f"empfohlene Vorgabe ~{v_tz:.1f} V (linear geschätzt aus ΔT-Fehlmenge "
+                    f"empfohlene Vorgabe ~{v_tz:.1f} V ({basis_txt} aus ΔT-Fehlmenge "
                     f"{config.RM_DELTA_T_TARGET_C - dt:.1f} K; Klemme 0 V = max. zu)"
                 )
                 dt_kurz = "Fluss zu schnell → drosseln"
             elif dt > config.RM_DELTA_T_TARGET_C + tol:
                 vorgeschlagen = f"Sollspannung in Richtung {config.RM_V_MAX:.0f} V öffnen"
-                akt_txt = f"empfohlene Vorgabe {config.RM_V_MAX:.0f} V (voll offen; linear geschätzt)"
+                akt_txt = (
+                    f"empfohlene Vorgabe {config.RM_V_MAX:.0f} V (voll offen; {basis_txt})"
+                )
                 dt_kurz = "Fluss langsam → öffnen"
             else:
                 vorgeschlagen = (
@@ -1296,9 +1378,9 @@ def _minderer_advisories(
                 f"Kreis {z} aktiv (Minderer aktuell auf: offen-2-h-Ø {off2:.2f} ≥ "
                 f"{config.RM_ACTIVE_QUOTA}), ΔT lag-korrigiert {dt:.1f} K vs Ziel "
                 f"{config.RM_DELTA_T_TARGET_C:.0f} K ({dt_kurz}). {akt_txt}. "
-                + "Linearer Ansatz (V-Ziel = Sollspannung × ΔT-Quotient, ohne "
-                "Datenbasis); V→ΔT-Kennlinie pro Strang (EG/DG/Keller) wird ab 07.11 "
-                "aus Daten gelernt (v0.6). Implementierung: Sollspannung (Fixwert) je "
+                + basis_detail
+                + oor_txt
+                + " Implementierung: Sollspannung (Fixwert) je "
                 "Minderer ist von außen setzbar (UVR-Programm/externer Regler) — "
                 "TA-Designer/UVR-extern."
             )
@@ -1308,8 +1390,9 @@ def _minderer_advisories(
             begruendung = (
                 f"Kreis {z} aktiv (Minderer aktuell auf: offen-2-h-Ø {off2:.2f} ≥ "
                 f"{config.RM_ACTIVE_QUOTA}), ΔT nicht ermittelt (Ziel {config.RM_DELTA_T_TARGET_C:.0f} K). "
-                + "Linearer Ansatz; V→ΔT-Kennlinie pro Strang folgt aus Messung (v0.6). "
-                "Implementierung: Sollspannung (Fixwert) je Minderer von außen setzbar "
+                + basis_detail
+                + oor_txt
+                + " Implementierung: Sollspannung (Fixwert) je Minderer von außen setzbar "
                 "(UVR-Programm/externer Regler) — TA-Designer/UVR-extern."
             )
         out.append(
@@ -1706,8 +1789,11 @@ def recommend(
     # Historie-Scan; fehlt → v0.4-Heuristik + Hinweis).
     # v0.6-B: + VL-Minimum-Cache-Artefakt (Kaskade datenbasiert; fehlt →
     # Kaskade überspringt Stufe 2, v0.5-Verhalten bleibt exakt).
+    # v0.6-A: + Minderer-V→ΔT-Kurven-Cache (Zone-Kennlinie; fehlt →
+    # linear-Fallback, exakt v0.5-Verhalten).
     vl_calib = load_vl_calibration(features_dir=features_dir)
     vl_min_art = load_vl_minimum(features_dir=features_dir)
+    minderer_curve_art = load_minderer_curve(features_dir=features_dir)
     tier_b = tier_b_advisories(
         state,
         wx_obj,
@@ -1716,6 +1802,7 @@ def recommend(
         rm_diag=rm_diag_dict,
         vl_calib=vl_calib,
         vl_min_art=vl_min_art,
+        minderer_curve=minderer_curve_art,
     )
 
     # --- Konfidenz ---

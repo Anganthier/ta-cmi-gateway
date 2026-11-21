@@ -33,7 +33,7 @@ Neu in ``m2b-f3`` (v003, ``docs/l1-model-v003.md`` §4; Schwellen aus
 - ``uvr_ww_margin`` = 57 °C − buff_top (WW-Anforderung → Ölbrenner O5),
 - ``uvr_o1_margin`` = min(wood_vl − 65, wood_vl − buff_bot − 3) (O1 Holzpumpe),
   jeweils auch ``*_last`` aus den letzten 10-s-Werten der Stunde.
-- ``vlst_est`` = Heizkurve (+10 °C → 45 °C, −20 °C → 65 °C, linear, geklemmt 25..70)
+- ``vlst_est`` = Heizkurve (+10 °C → 41 °C, −20 °C → 65 °C, linear, geklemmt 25..70)
   aus ``ext``; ``vl_err`` = ``vlst_est − hz_vl`` (> 0 = Vorlauf unter Soll).
 - ``buff_strat_top_mid`` / ``buff_strat_mid_bot``: Pufferschichtung.
 - ``hz_flow_pump`` / ``hz_flow_o9``: Wärmestrom-Proxy (hz_vl − hz_rl) × An-Quotient

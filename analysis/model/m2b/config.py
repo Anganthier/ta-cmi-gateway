@@ -122,9 +122,13 @@ UVR_O2_DIFF_K = 24.6  # O2 Öl-Ladepumpe an: a5 Öl-VL > a1 Puffer-Oben + 24,6 K
 UVR_WW_SOLL = 57.0  # AnfWW → O5: a1 Puffer-Oben < 57 °C im Zeitfenster (aus bei +4 K)
 UVR_O1_MIN = 65.0  # O1 Holz-Ladepumpe: a9 Holz-VL > 65 °C …
 UVR_O1_DIFF_K = 3.0  # … und a9 > a3 Puffer-Unten + 3 K (und a3 < 90 °C)
-# Heizkurve u1611FunkHeizkreis: +10 °C → VL 45 °C, −20 °C → VL 65 °C, VLMin 25, VLMax 70.
-# Raumeinfluss (70 %) und Steilheit 60 sind in der Schätzung nicht modelliert.
-HK_CURVE: tuple[tuple[float, float], tuple[float, float]] = ((10.0, 45.0), (-20.0, 65.0))
+# Heizkurve u1611FunkHeizkreis: +10 °C → VL 41 °C (20.11 Feldtest, vorher 45;
+# Rollback-Ladter 41→43→45), −20 °C → VL 65 °C, VLMin 25, VLMax 70.
+# Kurven-Modus = Temperaturpunkte (tdw Kurve=0); .tdw-Steil=60 ist inaktiv
+# (Steilheit-Modus). Temperaturpunkt-Modus fixiert zusätzlich +20 °C AT → +20 °C
+# VL + Kurven-Krümmung (nicht modelliert; Ist-VL liegt ab +12 °C ~1 K unter der
+# Geraden). Raumeinfluss (70 %) ist in der Schätzung nicht modelliert.
+HK_CURVE: tuple[tuple[float, float], tuple[float, float]] = ((10.0, 41.0), (-20.0, 65.0))
 HK_VL_MIN = 25.0
 HK_VL_MAX = 70.0
 

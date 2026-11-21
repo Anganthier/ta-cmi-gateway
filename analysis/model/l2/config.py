@@ -375,6 +375,77 @@ VL_MIN_AM_SOLL_TOL_K = 1.5  # „Raum am Soll“-Toleranz (Abweichung ≥ −1,5
 VL_MIN_MIN_N = 50  # min. „alle-räume-am-Soll“-Heizstunden pro Band (sonst Fallback)
 VL_MIN_QUANTILE = 95  # VL-Perzentil (95.-Perzentil) über den am-Soll-Heizstunden
 VL_MIN_ESTIMATE_PATH = _REPO_ROOT / "data" / "l2" / "vl_minimum.json"
+
+# --- L2 v0.6-A: Minderer-V→ΔT-Kennlinie (2-Faktor, last-normalisiert) ---
+# maintainer-Ziel (2026-11-17, HITL 18.11): die lineare V-Ziel-Schätzung in
+# ``minderer_v_target_v`` („erst linear annehmen, dann messen, dann Kurve“)
+# wird **ersetzt** durch eine datenbelegte Kennlinie je Strang; Fallback
+# linear bei < 2 Phasen-Punkten pro Strang (altes Verhalten exakt erhalten).
+# **Physik (Kanon 2026-11-16/17):** V→ΔT ist NICHT linear-in-V: im
+# Drossel-Regime (Ventil offen, ~2–7 V) ≈ ΔT ≈ k/V (hyperbolisch); bei hohem
+# V (~≥ 8–10 V) = **Sättigungs-Regime** (Ventil voll offen, UVR regelt über
+# die O8-Pumpe) → ΔT flach, 1/V-Anteil bricht ab. Deshalb 2-Faktor-Modell
+# ``ΔT = a·(1/V) + b·ext + c`` (hyperbolisch in V, linear in Außen-T =
+# Last-Normierung), lineares Least-Squares auf Features (1/V, ext, 1).
+# **Kennlinien-Punkte = NUR O8-AN + Zeitplan-NORMAL + Minderer-offen**
+# (Pump-ON-Flow); O8-AUS = reiner thermischer Drift/Backflow = NIEMALS
+# Kennlinien-Punkt (Methodik-Korrektur 15.11, datenbewiesen). Datenbasis:
+# 10-s-Rohdaten ab Lernstart (UVR-Programm-Upload 2026-11-07 16:14 —
+# wiederverwendet: ``VL_MIN_LEARN_START``, davor = keine statischen
+# Sollspannungen → nicht belastbar).
+# **Phasen-Erkennung:** konstante Sollspannung (a17/18/19, Toleranz ±
+# ``RM_CURVE_SOLL_TOL_V``) über aufeinanderfolgende Samples, Mindestdauer ≥
+# ``RM_CURVE_MIN_HOURS`` h (schließt die 16-min-1-V-Phase automatisch aus,
+# maintainer: „viel zu kurz“, nur Richtungs-Indiz) + min. Samples pro Phase +
+# max. Datenlücke INNERHALB einer Phase (Segment-Bruch bei Abbruch).
+# Zone-Mapping a17→kell / a18→eg / a19→dg = dokumentierte Annahme (a18↔EG
+# live bestätigt; s. ``RM_RAW_MINDERER_SOLL``).
+# Außen-T-Rohkanal (UVR1611 dev0, „Außen“):
+RM_RAW_EXT = "dev0_analog_08"
+# Zeitplan-NORMAL-Test: Raum-SOLL.eff (dev0 a12) ≥ 18 °C (exakt 2 Distinktwerte
+# im Tag: 18 = NORMAL, 16 = ABSENK).
+RM_CURVE_NORMAL_MIN_C = 18.0
+# Minderer-offen-Test: internes UVR-Signal (a10/11/12) > 0,1 V (UVR taktet
+# 0 ↔ Soll; „offen“ = An-Takt, Durchfluss-Proxy).
+RM_CURVE_OFFEN_MIN_V = 0.1
+# Phase = konstante Sollspannung (Toleranz ± V auf dem 10-s-Raster).
+RM_CURVE_SOLL_TOL_V = 0.05
+# Phasen-Minimum (darauf fällt die 16-min-Phase: „viel zu kurz“).
+RM_CURVE_MIN_HOURS = 1.0
+RM_CURVE_MIN_SAMPLES = 30
+# max. Datenlücke (s) innerhalb einer Phase: Logger-Aussetzer (typisch
+# ~10 min, s. cmi_log_pq-Gaps 09.11–18.11: 576–600 s) brechen die Phase
+# NICHT — die statische Sollspannung persistiert über den Logger-Ausfall.
+# Lücken > 1 h = konservativer Segment-Bruch (Value-Änderung möglich).
+RM_CURVE_MAX_GAP_S = 3600.0
+# **Regime-/Sättigungs-Prüfung (Zusatz 18.11):** das höchste-V-Phasen-Punkt
+# (aktuell: 10 V, duty 0,65, O8-Anteil 32 % — Ventil steht offen, UVR regelt
+# über O8) liegt wahrscheinlich im Sättigungs-Regime und trifft ein reines
+# 1/V-Modell schlecht. Rule (deterministisch): nach dem 2-Faktor-Fit
+# Residuum je Phasen-Punkt berechnen; liegt das ``RM_CURVE_SAT_V``-Punkt-
+# Residuum (gegen den 4-Punkte-Fit) ≥ ``RM_CURVE_SAT_RESID_K`` (1,0 K — die
+# Drossel-Regime-Punkte (2/5/7 V) liegen im selben Fit bei ±0,2 K, der
+# 10-V-Punkt bei +1,4 K) → ``out_of_throttle_regime = true`` + (bei ≥
+# ``RM_CURVE_SAT_REFIT_MIN_N`` verbleibenden Punkten) **Refit OHNE dem
+# Punkt** → der Sättigungs-Punkt wird Kontext (``points``, ``satur_10v``),
+# die Inverse nutzt die Drossel-Fit-Koeffizienten (Punkt aus der Inverse
+# **ausgeschlossen**). Kleines Residuum → Flag ``false``, ganzer Bereich
+# [0, 10] kontrollierbar.
+RM_CURVE_SAT_V = 10.0
+RM_CURVE_SAT_RESID_K = 1.0
+RM_CURVE_SAT_REFIT_MIN_N = 3
+# usable = ≥ 2 Phasen-Punkte (darunter: Fallback linear, exakt altes
+# ``minderer_v_target_v``-Verhalten).
+RM_CURVE_MIN_POINTS = 2
+# Inverse-Guard: Nenner (ΔT_ziel − b·ext − c) ≤ Guard → V = RM_V_MAX
+# (Lastterm allein übersteigt Ziel → nicht per Minderer erreichbar; konsistent
+# mit der bisherigen ``gap ≤ 0 → V_MAX``-Semantik).
+RM_CURVE_INVERSE_DEN_MIN_K = 0.5
+# Out-of-Range-Außen-T (außerhalb des Fit-Kalibrierungsbands min/max ext der
+# Phasen) → Advisory-Text-Flag (KEIN Stopp; Advisory bleibt, nur Hinweis).
+RM_CURVE_EXT_RANGE_WARN_K = 0.0
+# Cache-Artefakt (rw-``data``-Bind ``/data/l2``, wie ``vl_minimum.json``):
+RM_CURVE_ESTIMATE_PATH = _REPO_ROOT / "data" / "l2" / "minderer_curve.json"
 # --- Recover (live, kein Cache; maintainer-Zielfunktion: „Raum weit unter Soll →
 # VL temporär höher, dann langsam runter“) ---
 # Schwellwert: Raum ≥ 1,5 K unter Soll → Kurve N Raster HÖHER (temporär).

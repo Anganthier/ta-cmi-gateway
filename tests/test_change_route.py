@@ -111,7 +111,12 @@ class FakeCMIWrite:
 # Fixtures
 # ---------------------------------------------------------------------------
 def _settings(tmp_path: Path, *, write_token: str = "write-tok",
-              read_token: str = "read-tok") -> Settings:
+              read_token: str = "read-tok", role: str = "prod") -> Settings:
+    # CMI_ROLE=prod: diese Tests simulieren den echten Write-Pfad (S3-1) und
+    # damit die kanonisierte prod-Semantik (v0.6-A': Dev-Default = kein
+    # echter CMI-Write; s. app/cmi/write.py assert_role_allows_real_write).
+    # Die dev-Default-Semantik wird in tests/test_write.py +
+    # tests/test_minderer_write.py getestet.
     return Settings(
         cmi_base_url="http://cmi.test",
         cmi_user="admin",
@@ -127,6 +132,7 @@ def _settings(tmp_path: Path, *, write_token: str = "write-tok",
         audit_jsonl_path=tmp_path / "audit" / "change.jsonl",
         l1_store_dir=tmp_path / "features",
         l1_model_dir=tmp_path / "models" / "v003",
+        cmi_role=role,
     )
 
 

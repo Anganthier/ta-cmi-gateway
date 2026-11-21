@@ -195,7 +195,7 @@ async def test_noop_write_x2_uses_x2_params():
     assert result.x2 is True
 
 
-async def test_write_applies_new_value_with_readback():
+async def test_write_applies_new_value_with_readback(cmi_role_prod):
     """A real value change (mocked): before=AUTO(3), write EIN(2), after=EIN(2)."""
     fake = FakeCMI(
         schematic_html=_schematic_with_switch("AUTO/EIN"),
@@ -211,7 +211,7 @@ async def test_write_applies_new_value_with_readback():
     assert result.after.current_label == "EIN"
 
 
-async def test_write_strict_rejects_readback_mismatch():
+async def test_write_strict_rejects_readback_mismatch(cmi_role_prod):
     """The CMI 'changes' something else -> strict mode raises CMISafetyError."""
     fake = FakeCMI(
         schematic_html=_schematic_with_switch("AUTO/EIN"),
@@ -225,7 +225,7 @@ async def test_write_strict_rejects_readback_mismatch():
     assert len(fake.change_calls) == 1
 
 
-async def test_write_rejects_value_not_in_option_list():
+async def test_write_rejects_value_not_in_option_list(cmi_role_prod):
     fake = FakeCMI(schematic_html=_schematic_with_mode("NORMAL"), changer_html=_mode_changer("3"))
     async with _client(fake.transport()) as client:
         with pytest.raises(CMISafetyError, match="not one of the allowed options"):
@@ -233,7 +233,7 @@ async def test_write_rejects_value_not_in_option_list():
     assert fake.change_calls == []  # no write happened
 
 
-async def test_write_rejects_empty_value():
+async def test_write_rejects_empty_value(cmi_role_prod):
     fake = FakeCMI(schematic_html=_schematic_with_mode("NORMAL"), changer_html=_mode_changer("3"))
     async with _client(fake.transport()) as client:
         with pytest.raises(CMISafetyError, match="non-empty"):
@@ -266,7 +266,7 @@ async def test_risk_address_readable_for_inventory():
     assert fake.change_calls == []
 
 
-async def test_non_whitelisted_address_refused():
+async def test_non_whitelisted_address_refused(cmi_role_prod):
     fake = FakeCMI(schematic_html="", changer_html=_mode_changer("3"))
     async with _client(fake.transport()) as client:
         with pytest.raises(CMISafetyError, match="whitelist"):
@@ -348,6 +348,95 @@ async def test_read_only_client_still_blocks_change_cgi():
             await read_client._get_raw("/INCLUDE/change.cgi")
         await read_client.get_schematic(1)  # still allowed
     assert "/schematic_files/1.cgi" in fake.paths
+
+
+# ---------------------------------------------------------------------------
+# Browser signature headers (v0.6-A' Phase 2 Fix F1)
+#
+# The CMI (Keil-EWEB/2.1) answers change.cgi with "OK\r" but silently
+# discards the value when the request lacks a browser signature (A/B
+# evidence: tmp/forensic_write_log.md / CIR-Log 18.11).  The WRITE client
+# therefore must send UA (Chrome) + X-Requested-With + Accept + a Referer
+# pointing at the CMI's own schema.html; the READ-only client must NOT.
+# ---------------------------------------------------------------------------
+_CHROME_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+)
+
+
+async def test_write_client_sends_browser_signature_headers():
+    """A change.cgi call from the write client carries the full browser
+    signature: Mozilla UA, X-Requested-With, Accept */*, and a Referer
+    pointing at <base_url>/schema.html (recorded via MockTransport)."""
+    fake = FakeCMI(schematic_html="", changer_html="")
+    captured: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/INCLUDE/change.cgi":
+            captured.append(request)
+        return fake.handle(request)
+
+    client = CMIWriteClient(
+        "http://cmi.test", "admin", "admin",
+        transport=httpx.MockTransport(handler), readback_delay_sec=0.0,
+    )
+    async with client:
+        await client._get_raw("/INCLUDE/change.cgi", {"changeadr": "1", "changeto": "1"})
+    assert len(captured) == 1
+    headers = captured[0].headers
+    assert headers["user-agent"].startswith("Mozilla/")
+    assert "Chrome/120.0.0.0" in headers["user-agent"]
+    assert headers["x-requested-with"] == "XMLHttpRequest"
+    assert headers["accept"] == "*/*"
+    assert headers["referer"] == "http://cmi.test/schema.html"
+
+
+async def test_read_client_has_no_browser_headers():
+    """The read-only CMIClient is unchanged: none of the browser-signature
+    headers (X-Requested-With, Referer, Chrome UA) are sent by default.
+    (httpx's own built-in ``accept: */*``/``python-httpx`` defaults remain
+    -- the point is that the client adds no browser signature of its own.)"""
+    from app.cmi.client import CMIClient
+
+    fake = FakeCMI(schematic_html="", changer_html="")
+    captured: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request)
+        return fake.handle(request)
+
+    async with CMIClient(
+        "http://cmi.test", "admin", "admin", transport=httpx.MockTransport(handler)
+    ) as read_client:
+        await read_client.get_schematic(1)
+    assert len(captured) == 1
+    headers = captured[0].headers
+    assert "x-requested-with" not in headers
+    assert "referer" not in headers
+    assert not headers["user-agent"].startswith("Mozilla/")
+
+
+async def test_write_client_referer_trailing_slash():
+    """A base_url with a trailing slash must not leak into the Referer:
+    ``http://cmi.test/`` -> Referer ``http://cmi.test/schema.html`` (no //)."""
+    fake = FakeCMI(schematic_html="", changer_html="")
+    captured: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request)
+        return fake.handle(request)
+
+    client = CMIWriteClient(
+        "http://cmi.test/", "admin", "admin",
+        transport=httpx.MockTransport(handler), readback_delay_sec=0.0,
+    )
+    async with client:
+        await client._get_raw("/INCLUDE/change.cgi", {"changeadr": "1", "changeto": "1"})
+    assert len(captured) == 1
+    assert captured[0].headers["referer"] == "http://cmi.test/schema.html"
+    # no double slash after the host (``...cmi.test//schema.html`` forbidden)
+    assert "cmi.test//" not in captured[0].headers["referer"]
 
 
 # ---------------------------------------------------------------------------
@@ -770,3 +859,251 @@ def test_request_url_param_serialization():
     assert _request_url(params={"changeadrx2": "20000040911202", "changetox2": "2"}) == (
         "GET /INCLUDE/change.cgi?changeadrx2=20000040911202&changetox2=2"
     )
+
+
+# ---------------------------------------------------------------------------
+# v0.6-A' Minderer-Sollspannungen (UVR610, Seite 6, x2 numeric) + CMI_ROLE
+# ---------------------------------------------------------------------------
+MINDERER_ADDRS = ("10044142091", "10144142091", "10244142091")
+MINDERER_ROHE: dict[str, str] = {
+    "10044142091": "2000004414D10D",
+    "10144142091": "2000014414D10D",
+    "10244142091": "2000024414D10D",
+}
+
+
+def _minderer_changer(addr: str, value: str = "2.00") -> str:
+    """Real CMI dialog shape (Discovery 18.11, EG) for the Minderer addresses."""
+    return (
+        f'<input type="hidden" value="{MINDERER_ROHE[addr]}" name="changeadrx2" id="changeadr">'
+        "2.00 - 10.00V<br>"
+        f'<input type="number" name="changetox2" min="2.00" max="10.00" value="{value}" '
+        'id="changeto" class="schanger" step="0.01">'
+    )
+
+
+def _minderer_schematic(addr: str, text: str = "2.00 V") -> str:
+    return (
+        f'<div id="pos1" class="changex2" adresse="{addr}">{text}</div>'
+    )
+
+
+@pytest.fixture()
+def cmi_role_prod(monkeypatch) -> None:
+    """CMI_ROLE=prod for the test body (default = dev = no real writes)."""
+    from app.config import reset_settings_cache
+
+    monkeypatch.setenv("CMI_ROLE", "prod")
+    reset_settings_cache()
+    yield
+    reset_settings_cache()
+
+
+@pytest.mark.parametrize("addr", MINDERER_ADDRS)
+def test_minderer_addresses_in_whitelist_and_x2_not_risk(addr):
+    from app.cmi.write import RISK_ADDRESSES, WRITABLE_ADDRESSES, X2_ADDRESSES
+
+    assert addr in WRITABLE_ADDRESSES
+    assert addr in X2_ADDRESSES
+    assert addr not in RISK_ADDRESSES
+    assert CMIWriteClient._is_x2(addr) is True
+
+
+def test_minderer_address_pages_are_six():
+    from app.cmi.write import ADDRESS_PAGES
+
+    for addr in MINDERER_ADDRS:
+        assert ADDRESS_PAGES[addr] == 6
+
+
+@pytest.mark.parametrize("addr", MINDERER_ADDRS)
+async def test_minderer_resolves_numeric_with_readback_value(addr):
+    fake = FakeCMI(schematic_html=_minderer_schematic(addr), changer_html=_minderer_changer(addr))
+    async with _client(fake.transport()) as client:
+        info = await client.resolve(addr)
+    assert fake.paths == ["/INCLUDE/changerx2.cgi"]  # whitelist-gated x2 resolution
+    assert info.option_type == "numeric"
+    assert info.change_address == MINDERER_ROHE[addr]
+    assert info.current_value == "2.00"
+    assert info.min_value == "2.00"
+    assert info.max_value == "10.00"
+    assert info.settable_values == ["2.00", "10.00"]
+
+
+async def test_minderer_read_current_page6_schematic_text():
+    """Read-back uses ADDRESS_PAGES -> page 6 (mocked ``6.cgi`` HTML)."""
+    fake = FakeCMI(
+        schematic_html=_minderer_schematic("10144142091", "3.50 V"),
+        changer_html=_minderer_changer("10144142091", "3.50"),
+    )
+    async with _client(fake.transport()) as client:
+        rb = await client.read_current("10144142091")
+    assert "/schematic_files/6.cgi" in fake.paths
+    assert rb.x2 is True
+    assert rb.change_address == "2000014414D10D"
+    assert rb.option_type == "numeric"
+    assert rb.current_value == "3.50"
+    assert rb.min_value == "2.00"
+    assert rb.max_value == "10.00"
+    assert rb.schematic_text == "3.50 V"
+    assert rb.consistent is True  # 3.50 in [2.00, 10.00]
+    assert fake.change_calls == []
+
+
+async def test_minderer_read_current_schematic_text_mismatch_inconsistent():
+    """Schematic-Text-Drift (11.5 V) vs. Dialog-Wert (2.00): der Dialog-Wert
+    ist CANONICAL (current_value=2.00); der Text-Mismatch -> consistent=False."""
+    fake = FakeCMI(
+        schematic_html=_minderer_schematic("10044142091", "11.5 V"),
+        changer_html=_minderer_changer("10044142091", "2.00"),
+    )
+    async with _client(fake.transport()) as client:
+        rb = await client.read_current("10044142091")
+    assert rb.current_value == "2.00"  # canonical: the dialog value
+    assert rb.schematic_text == "11.5 V"
+    assert rb.consistent is False  # text shows a different number
+
+    # non-numeric text (no number at all) -> also inconsistent, value kept
+    fake2 = FakeCMI(
+        schematic_html=_minderer_schematic("10044142091", "ERROR"),
+        changer_html=_minderer_changer("10044142091", "2.00"),
+    )
+    async with _client(fake2.transport()) as client2:
+        rb2 = await client2.read_current("10044142091")
+    assert rb2.current_value == "2.00"
+    assert rb2.consistent is False
+
+
+async def test_role_gate_dev_blocks_real_write_before_http():
+    """DEV-DEFAULT (Kern-DoD): a real Minderer write raises CMISafetyError
+    BEFORE any HTTP traffic (MockTransport sees 0 requests)."""
+    from app.cmi.write import effective_role
+    from app.config import Settings, reset_settings_cache
+
+    fake = FakeCMI(
+        schematic_html=_minderer_schematic("10144142091"),
+        changer_html=_minderer_changer("10144142091"),
+    )
+    async with _client(fake.transport()) as client:
+        with pytest.raises(CMISafetyError, match="CMI_ROLE=dev"):
+            await client.write("10144142091", "2.50")
+    assert fake.paths == []  # NO CMI request at all
+    assert fake.change_calls == []
+    # default settings -> dev (cmi_role default)
+    assert effective_role() == "dev"
+    assert Settings(cmi_base_url="http://cmi.test").cmi_role == "dev"
+    reset_settings_cache()
+
+
+async def test_role_gate_constructor_param_prod_allows(monkeypatch, cmi_role_prod):
+    """role='prod' as constructor param releases the write even if the
+    global settings cache said dev (test isolation direction)."""
+    from app.cmi.write import CMIWriteClient
+
+    monkeypatch.delenv("CMI_ROLE", raising=False)
+    from app.config import reset_settings_cache
+
+    reset_settings_cache()  # global = dev now
+    fake = FakeCMI(
+        schematic_html=_minderer_schematic("10144142091", "2.50 V"),
+        changer_html=_minderer_changer("10144142091", "2.00"),
+        post_write_html=_minderer_changer("10144142091", "2.50"),
+    )
+    client = CMIWriteClient(
+        "http://cmi.test", "admin", "admin",
+        transport=fake.transport(), readback_delay_sec=0.0, role="prod",
+    )
+    async with client:
+        result = await client.write("10144142091", "2.50")
+    assert result.applied is True
+
+
+async def test_role_gate_constructor_param_dev_blocks(monkeypatch, cmi_role_prod):
+    """role='dev' as constructor param blocks even when the global settings
+    say prod (fail-safe: the client's own role wins)."""
+    from app.cmi.write import CMIWriteClient
+
+    fake = FakeCMI(
+        schematic_html=_minderer_schematic("10144142091"),
+        changer_html=_minderer_changer("10144142091"),
+    )
+    client = CMIWriteClient(
+        "http://cmi.test", "admin", "admin",
+        transport=fake.transport(), readback_delay_sec=0.0, role="dev",
+    )
+    async with client:
+        with pytest.raises(CMISafetyError, match="CMI_ROLE=dev"):
+            await client.write("10144142091", "2.50")
+    assert fake.paths == []
+
+
+@pytest.mark.parametrize("role_value", ["PROD", "prodX", " Prod ", "", "DEV", "pro d"])
+async def test_role_gate_invalid_roles_fail_safe_to_dev(monkeypatch, role_value):
+    """Ungültige/abweichende CMI_ROLE-Werte -> dev-Semantik (fail-safe),
+    d. h. KEIN Write. Ein Tippfehler darf niemals Writes freigeben."""
+    from app.cmi.write import effective_role
+    from app.config import reset_settings_cache
+
+    monkeypatch.setenv("CMI_ROLE", role_value)
+    reset_settings_cache()
+    try:
+        assert effective_role() == "dev"
+        # and the gate actually blocks a real write with zero HTTP:
+        fake = FakeCMI(
+            schematic_html=_minderer_schematic("10144142091"),
+            changer_html=_minderer_changer("10144142091"),
+        )
+        async with _client(fake.transport()) as client:
+            with pytest.raises(CMISafetyError, match="CMI_ROLE=dev"):
+                await client.write("10144142091", "2.50")
+        assert fake.paths == []
+    finally:
+        monkeypatch.delenv("CMI_ROLE", raising=False)
+        reset_settings_cache()
+
+
+async def test_role_gate_prod_allows_real_write(monkeypatch, cmi_role_prod):
+    """CMI_ROLE=prod: the write runs (mocked), x2 params, 2-decimal send +
+    read-back comparison, applied=True."""
+    from app.cmi.write import effective_role
+
+    assert effective_role() == "prod"
+    fake = FakeCMI(
+        schematic_html=_minderer_schematic("10144142091", "2.50 V"),
+        changer_html=_minderer_changer("10144142091", "2.00"),
+        post_write_html=_minderer_changer("10144142091", "2.50"),
+    )
+    async with _client(fake.transport()) as client:
+        result = await client.write("10144142091", "2.50")
+    assert fake.change_calls == [{"changeadrx2": "2000014414D10D", "changetox2": "2.50"}]
+    assert result.applied is True
+    assert result.x2 is True
+    assert result.after.current_value == "2.50"
+    assert result.request == "GET /INCLUDE/change.cgi?changeadrx2=2000014414D10D&changetox2=2.50"
+
+
+async def test_minderer_write_dev_blocks_before_any_cmi_call():
+    """Dev + Minderer: 0 HTTP calls even for the full write attempt."""
+    fake = FakeCMI(
+        schematic_html=_minderer_schematic("10244142091"),
+        changer_html=_minderer_changer("10244142091"),
+    )
+    async with _client(fake.transport()) as client:
+        with pytest.raises(CMISafetyError, match="CMI_ROLE=dev"):
+            await client.write("10244142091", "3.00")
+    assert fake.paths == []
+    assert fake.change_calls == []
+
+
+async def test_role_gate_prod_noop_allowed_in_dev_too():
+    """The no-op path itself has NO role gate: in dev it performs the
+    value-neutral write (maintainer-approved one-time local test)."""
+    fake = FakeCMI(
+        schematic_html=_minderer_schematic("10144142091"),
+        changer_html=_minderer_changer("10144142091", "2.00"),
+    )
+    async with _client(fake.transport()) as client:
+        result = await client.noop_write("10144142091")
+    assert fake.change_calls == [{"changeadrx2": "2000014414D10D", "changetox2": "2.00"}]
+    assert result.noop_ok is True
+    assert result.x2 is True

@@ -194,7 +194,7 @@ async def test_start_stop_pollers_idempotent(settings):
     gateway = _gateway(settings, make_fake_transport())
     gateway.start_pollers()
     n_tasks = len(gateway._tasks)
-    assert n_tasks == 3  # schematic + JSON-API + CMI /LOG pollers
+    assert n_tasks == 4  # schematic + JSON-API + CMI /LOG + Minderer-Loop Poller
     gateway.start_pollers()  # idempotent
     assert len(gateway._tasks) == n_tasks
     assert all(not t.done() for t in gateway._tasks)

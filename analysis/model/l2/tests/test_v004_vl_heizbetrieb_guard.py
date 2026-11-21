@@ -98,15 +98,15 @@ def test_heizbetrieb_absatz_wie_v003(tmp_path: Any, wx_ok: Any, skill_map: Any) 
     Begründung kommt jetzt aus der **VL-Soll-Kalibrierung** (Cache fehlt im
     Test → v0.4-Heuristik-Fallback + „Kalibrierung nicht verfügbar“-Hinweis;
     DoD-C-Regression: nur der Ruhe-Zustand-Text muss Wort-für-Wort
-    unverändert bleiben). ext 9,0 °C → Kurve 45,7 °C; Ist-VL 32,0 °C →
-    dev −13,7 K → −1 Raster, Ziel-VL-Soll = 44,7 °C."""
+    unverändert bleiben). ext 9,0 °C → Kurve 41,8 °C (neu 41/65);
+    Ist-VL 32,0 °C → dev −9,2 K → −1 Raster, Ziel-VL-Soll = 40,8 °C."""
     root = _set_sum3h(make_mini_store(tmp_path / "vl_haz"), oel3=1.0, pump3=0.0)
     rec = recommend(TS, features_dir=root, wx=wx_ok, predictor=_p_eq(), skill_map=skill_map)
     assert rec.stale is False
     vl = _vl_card(rec)
     assert vl["vorgeschlagen"].startswith("Heizkurven-Absatz −1 Raster")
     assert "Kalibrierung nicht verfügbar" in vl["begruendung_de"]
-    assert "Ziel-VL-Soll bei Außen 9.0 °C = 44.7 °C" in vl["begruendung_de"]
+    assert "Ziel-VL-Soll bei Außen 9.0 °C = 40.8 °C" in vl["begruendung_de"]
     assert not any(h.startswith("vl: kein Heizbetrieb") for h in rec.guardrail_hits)
 
 

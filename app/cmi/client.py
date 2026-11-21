@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Mapping
 from typing import Final
 
 import httpx
@@ -65,7 +66,14 @@ class CMIClient:
         timeout_sec: float = 15.0,
         allowed_paths: frozenset[str] | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
+        headers: Mapping[str, str] | None = None,
     ) -> None:
+        """Create the client.
+
+        ``headers`` optionally adds client-level default headers to every
+        request (e.g. the browser signature the write client sends); the
+        default ``None`` leaves the wire behaviour exactly as before.
+        """
         self._base_url = base_url.rstrip("/")
         self._auth = httpx.BasicAuth(username=user, password=password)
         self._timeout = httpx.Timeout(timeout_sec, connect=min(5.0, timeout_sec))
@@ -77,6 +85,8 @@ class CMIClient:
         }
         if transport is not None:
             client_kwargs["transport"] = transport
+        if headers is not None:
+            client_kwargs["headers"] = dict(headers)
         self._client = httpx.AsyncClient(**client_kwargs)
 
     # -- lifecycle ------------------------------------------------------------

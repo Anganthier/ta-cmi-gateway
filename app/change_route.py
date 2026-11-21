@@ -204,6 +204,11 @@ class ChangeService:
                     else DEFAULT_READBACK_DELAY_SEC
                 ),
                 transport=self._transport,
+                # v0.6-A' role gate: die Rolle kommt aus den DIESER Route
+                # gehörenden Settings (CMI_ROLE, Default dev) -- nicht aus
+                # dem globalen Settings-Cache, damit ein injizierter Role
+                # (z. B. prod in Tests) die Write-Gate-Entscheidung trifft.
+                role=self.settings.cmi_role,
             )
         return self._client
 
@@ -219,7 +224,7 @@ class ChangeService:
         if adr not in WRITABLE_ADDRESSES:
             raise HTTPException(
                 status_code=403,
-                detail=f"Adresse {adr!r} ist nicht in der L1-Write-Whitelist (9 Adressen)",
+                detail=f"Adresse {adr!r} ist nicht in der L1-Write-Whitelist",
             )
         if adr in RISK_ADDRESSES:
             raise HTTPException(

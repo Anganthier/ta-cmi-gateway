@@ -214,7 +214,7 @@ Offsets + Kurven-Parameter, nicht über „einen PID-Gain").
 
 | # | Modul | id | Typ | Funktion (kurz) | Kern-Parameter (Rohwert → interpretiert) |
 |---|---|---|---|---|---|
-| 1 | u1611FunkHeizkreis | 10211297 | 1 | **Grundregelung**: Außen→VL-Soll (Heizkurve), Pumpe O8 + Mischer O3, Zeitprogramm, Frostschutz | Norm=20°C, Absenk=16°C, +10°C→VL45, -20°C→VL65, Steil=60, VLMax=70, VLMin=25, Raumeinfluss=70%, Vorh=30 min, RTFrost=5, ATFrost=5, MW-VLR=107(❓), MW-Ab=127(❓), SchwAT-Ab=19, HyAT-Ab=10, SchwAb-Ab=15, HyAb-Ab=10, Ueber=0%, Modus=1 |
+| 1 | u1611FunkHeizkreis | 10211297 | 1 | **Grundregelung**: Außen→VL-Soll (Heizkurve), Pumpe O8 + Mischer O3, Zeitprogramm, Frostschutz | Norm=20°C, Absenk=16°C, +10°C→VL41 (20.11-Feldtest, vorher VL45), -20°C→VL65, Kurve=0 (Temperaturpunkt-Modus aktiv; Steil=60 inaktiv = Steilheit-Modus; Temperaturpunkt-Modus fixiert +20°C AT→+20°C VL + Krümmung, nicht linear), VLMax=70, VLMin=25, Raumeinfluss=70%, Vorh=30 min, RTFrost=5, ATFrost=5, MW-VLR=107(❓), MW-Ab=127(❓), SchwAT-Ab=19, HyAT-Ab=10, SchwAb-Ab=15, HyAb-Ab=10, Ueber=0%, Modus=1 |
 | 2 | u1611FunkAnfHeiz | 11245104 | 2 | **Öl-Brenner-Anforderung, „gleitender Kesselbetrieb"**: Proz = Ölkessel-VL (a5), Schwellen beide = Vorlauf-Soll (VLST); an bei a5 < VLST + 3 K, aus bei a5 > VLST + 9 K. **Ölbrenner = rein ON/OFF (0 oder 100 %, keine Lastmodulation — maintainer 2026-10-31)** | Diff.Ein=30(3,0 K ✅), Diff.Aus=90(9,0 K ✅), Sock=0, AbT=fix 6(❓ Sockel/„unbenutzt"), Br=97 (Brennerleistung, **ungenutzt** bei ON/OFF ✅ F3), Oeko=0 (kein Öko-Unterdeckung) |
 | 3 | u1611FunkAnfWW | 11228837 | 3 | **WW-Anforderung**: an bei WW-Temp (**a1 Speicher-Oben** = WW-Kern) < Soll (Zeitfenster); `Anf` → O5 | WwMin=51(51 °C), DEin=0, DAus=40(4,0 K), Br=100 (Brennerleistung, ungenutzt bei ON/OFF ✅ F3); Zeitprogramm 5 ZP×2 Fenster |
 | 4 | u1611FunkLadepumpe | 11238988 | 4 | **Ladepumpe O1** („Pumpe Holzo."): an wenn **Holzkessel-VL (a9) > 65 °C** und **a9 > a3 (Speicher-Unten) + 3 K** und **a3 < 90 °C** → Puffer aus Holzkessel nachladen | T.Zub.Min=65(65 °C ✅), Diff.Ein=30(3,0 K ✅), Diff.Aus=0, T.Ref.Max=90(90 °C ✅), Diff.Ein(Ref)=10(1 K), Diff.Aus(Ref)=50(5 K) |
@@ -541,9 +541,10 @@ Pro Raum (Keller/EG/OG) ein Paar:
 |---|---|---|---|
 | Norm (Raum Normal) | 20 | 20 °C | Raum-Soll Normalbetrieb |
 | Absenk (Raum Absenk) | 16 | 16 °C | Raum-Soll Absenkbetrieb |
-| +10 (VL bei AT=+10°C) | 45 | 45 °C | Heizkurve-Punkt 1 |
+| +10 (VL bei AT=+10°C) | 41 | 41 °C | Heizkurve-Punkt 1 (20.11-Feldtest, vorher 45 °C; Rollback-Ladter 41→43→45) |
 | -20 (VL bei AT=-20°C) | 65 | 65 °C | Heizkurve-Punkt 2 |
-| Steil | 60 | 0,60 (❓) | Heizkurven-Steilheit (0,05–2,50) |
+| Kurve | 0 | 0 = Temperaturpunkt-Modus aktiv | Kurven-Modus-Schalter (1 = Steilheit-Modus) |
+| Steil | 60 | 0,60 (❓) | Heizkurven-Steilheit (0,05–2,50) — **inaktiv**, nur im Steilheit-Modus (Kurve=1) relevant |
 | VLMax | 70 | 70 °C | Vorlauf-Max (Obergrenze) |
 | VLMin | 25 | 25 °C | Vorlauf-Min (Untergrenze) |
 | Einfl (Raumeinfluss) | 70 | 70 % | Raum-Temp-Einfluss auf VL-Soll (0–90 %) |
@@ -558,6 +559,14 @@ Pro Raum (Keller/EG/OG) ein Paar:
 | HyAbAb | 10 | 1,0 K❓ | Hysterese Absenk-AT-Abschaltung |
 | Ueber (Einschalt-Überhöhung) | 0 | 0 % | Keine Einschalt-Überhöhung |
 | Zeitprogramm | ZP0: wt=127, ein0=36/aus0=135/sw0=20; ein1=60/aus1=132/sw1=20 | **06:00–22:30, 7 Tage (wt=127), sw=20 °C**; Zusatzfenster 10:00–22:00 (sw=20 °C) | Normalbetrieb-Fenster (1 ZP, 2 Fenster; Minuten-Raster ✅ F2) |
+
+> **Kurven-Modus (Stand 20.11-Feldtest):** Die UVR1611 ist wahlweise per **Steilheit** ODER per
+> **Temperaturpunkten +10/−20** parametrierbar — im `.tdw` ist `Kurve`=0 = **Temperaturpunkt-Modus
+> aktiv** → die zwei Punkte (41/65 °C) sind die wirkenden Parameter; `Steil`=60 ist **inaktiv**
+> (Steilheit-Modus). Der Temperaturpunkt-Modus legt zusätzlich einen **Fixpunkt +20 °C AT →
+> +20 °C VL** + eine „Krümmung der Heizkennlinie" (nicht linear) fest — empirisch: Ist-VL fällt
+> über +12 °C AT unter die 2-Punkte-Gerade. Die lineare 2-Punkte-Approximation (m2b `vlst_est`)
+> bleibt im relevanten AT-Bereich gültig (±2 K).
 
 ### 4.2 UVR1611 — Öl-Brenner (Anforderung Heizung)
 
@@ -945,7 +954,7 @@ Pro Raum (Keller/EG/OG) ein Paar:
   Top<80 °C), 5: Rücklaufminderer (**3× TA-Compact-P DN 25 (IMI), stufenlos 0–10 V linear = 0 % zu → 100 % auf** ✅ F4/F5, Schwellwert 20,0 °C, **keine Positions-Sensoren, Feedback nur PT1000/Strang** ✅ F8), 6:
   Zirkulation (Stromungsschalter+97-min-Nachlauf+Zeitfenster), 7: O9 (Puffer-Mitte
   > Heizkreis-RL + 5 K)).
-- **Schwellen:** Vollständig in §4 (Heizkreis: Norm=20/Absenk=16, +10°C→VL45,
+- **Schwellen:** Vollständig in §4 (Heizkreis: Norm=20/Absenk=16, +10°C→VL41 (20.11-Feldtest),
   -20°C→VL65, VLMax=70, VLMin=25, Raumeinfluss=70 %, Vorh=30 min, Zeitfenster
   06:00–22:30; Öl-Brenner: Diff.Ein=3,0 K ✅/Diff.Aus=9,0 K ✅, Öko=0, Br=97
   ungenutzt (ON/OFF, ✅ F3);

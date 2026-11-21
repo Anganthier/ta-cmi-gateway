@@ -87,6 +87,34 @@ services:
       L1_MODEL_DIR: /srv/cmi/models/cmi-brain/v003
       # S3-1-Audit (schreibbar, auf dem rw cmi_data-Volume).
       AUDIT_JSONL_PATH: /data/audit/change.jsonl
+      # CMI-Role-Gate (v0.6-A', maintainer-Forderung 18.11: Pi ist Master).
+      # WICHTIG: Dieser `environment`-Eintrag GILT am Pi und ueberschreibt
+      # das Pi-.env (Compose-Semantik: `environment` > `env_file`).
+      # CMI_ROLE=prod steht hier und NIE in der .env, weil das Pi-.env ein
+      # 1:1-Inhaltsspiegel der lokalen .env ist (pi_deploy_r1.sh mit
+      # Groessen-Check) -- ein .env-Eintrag wuerde auch auf dem Pop!_OS-Host
+      # die Rolle "prod" setzen und dort echte CMI-Writes freigeben, was
+      # die maintainer-Forderung verletzt. Lokales docker-compose.yml = ohne
+      # CMI_ROLE -> Settings-Default "dev" (kein echter CMI-Write, No-op
+      # bleibt erlaubt). Hier (Pi) = "prod": echte Minderer-Sollspannungs-
+      # Writes (v0.6-A' Phase 1, Semi-Auto-CLI) sind freigegeben.
+      CMI_ROLE: prod
+      # Minderer-Loop Phase 2 (v0.6-A', 18.11 maintainer-Go): autonomer
+      # EG-Minderer-Regelkreis im Gateway. NUR am Pi (Master,
+      # CMI_ROLE=prod). Lokales docker-compose.yml bleibt OHNE
+      # MINDERER_LOOP_ENABLED (Default dev+aus).
+      # WICHTIG (1:1-Spiegel-Kontrakt, analog CMI_ROLE): dieser
+      # `environment`-Eintrag GILT am Pi und ueberschreibt das Pi-.env
+      # (Compose-Semantik: `environment` > `env_file`). Er steht hier und
+      # NIE in der .env, weil das Pi-.env ein 1:1-Inhaltsspiegel der
+      # lokalen .env ist (pi_deploy_r1.sh) -- ein .env-Eintrag wuerde auch
+      # lokal den Loop aktivieren (lokal cmi_role=dev → Loop zwar inaktiv,
+      # aber das Key-Spiel bleibt aus der .env). Envelope/Interval/Floor
+      # via Settings-Defaults; Override hier optional (nur Intervall
+      # gezeigt). Deploy: data/l2/minderer_curve.json muss am Pi seeded
+      # sein, sonst Loop = no-curve-Idle (s. Task-Report 5/Deploy).
+      MINDERER_LOOP_ENABLED: "1"
+      MINDERER_LOOP_INTERVAL_MIN: ${MINDERER_LOOP_INTERVAL_MIN:-15}
       # CMI-/LOG-Poller (S4N-LogPoll): alle CMI_LOG_POLL_SEC (Default 300 s)
       # /LOG-Index- + Datenfiles lesen und in den cmi_log_pq-Store schreiben.
       CMI_LOG_POLL_SEC: ${CMI_LOG_POLL_SEC:-300}

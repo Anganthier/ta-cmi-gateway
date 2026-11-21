@@ -49,7 +49,8 @@ _LABEL_COL_TOL_PX = 80.0
 #: its label, so the search window is bounded.
 _LABEL_MAX_DY_PX = 130.0
 
-#: The five schematic pages and their human titles.
+#: The five schematic pages and their human titles (live-poll pages; the
+#: gateway's poller + UI page selector are built from THIS dict only).
 SCHEMATIC_PAGES: dict[int, str] = {
     1: "Start",
     2: "Warmwasser",
@@ -57,6 +58,11 @@ SCHEMATIC_PAGES: dict[int, str] = {
     4: "Solar",
     5: "Kamin",
 }
+
+#: Page 6 (UVR610) is NOT live-polled (the gateway polls pages 1-5 only) but
+#: IS a legal read-back page: the three Minderer-Sollspannungen (v0.6-A',
+#: Discovery 18.11) are bound there.  ``parse_schematic_html`` accepts it.
+_EXTRA_PAGES: frozenset[int] = frozenset({6})
 
 #: Default schematic asset directory (relative to the repo root).
 DEFAULT_SCHEMATIC_DIR = Path(__file__).resolve().parent.parent.parent / "assets" / "schematics"
@@ -287,7 +293,7 @@ def _resolve_label(pos: SchematicPos, positions: list[SchematicPos]) -> str | No
 def parse_schematic_html(html: str, page: int, *, title: str | None = None,
                          layout_html: str | None = None) -> SchematicPage:
     """Parse one schematic value page into a :class:`SchematicPage`."""
-    if page not in SCHEMATIC_PAGES and not title:
+    if page not in SCHEMATIC_PAGES and page not in _EXTRA_PAGES and not title:
         raise CMISchematicError(f"Unknown schematic page {page}", page=page)
 
     coords = parse_schematic_layout(layout_html) if layout_html is not None else {}

@@ -40,6 +40,13 @@ _HIDDEN_RE = re.compile(r'<input[^>]*type="hidden"[^>]*>', re.IGNORECASE)
 _ATTR_RE = re.compile(r'([a-zA-Z-]+)\s*=\s*"([^"]*)"')
 _OPTION_RE = re.compile(r'<option([^>]*)>\s*(.*?)\s*</option>', re.IGNORECASE | re.DOTALL)
 _SELECT_RE = re.compile(r"<select([^>]*)>.*?</select>", re.IGNORECASE | re.DOTALL)
+#: The CMI's own live value for numeric changer dialogs (UVR610 "Sollspannung"
+#: etc., Discovery 18.11): ``<input type="number" name="changetox2"
+#: min="2.00" max="10.00" value="2.00" id="changeto" class="schanger"
+#: step="0.01">`` -- the ``value`` attribute is the canonical current value.
+_NUMBER_INPUT_RE = re.compile(
+    r'<input[^>]*type="number"[^>]*>', re.IGNORECASE
+)
 
 #: Default in-memory TTL: 24 h.
 DEFAULT_TTL_SEC = 86400.0
@@ -74,6 +81,11 @@ class ChangerInfo(BaseModel):
             return [o.value for o in self.options]
         if self.option_type == "bit":
             return ["0", "1"]
+        if self.option_type == "numeric":
+            # numeric dialogs have a continuum, not a discrete option list:
+            # the writable envelope is the CMI's own [min, max] bounds.
+            bounds = [b for b in (self.min_value, self.max_value) if b]
+            return bounds
         return []
 
 
@@ -128,6 +140,21 @@ def parse_changer_html(html: str, *, display_address: str, x2: bool) -> ChangerI
         info.min_value = min_match.group(1)
     if max_match:
         info.max_value = max_match.group(1)
+
+    if info.option_type == "numeric":
+        # Numeric read-back (v0.6-A': UVR610 Minderer-Sollspannungen,
+        # Discovery 18.11): the CMI's own live value lives in the
+        # ``value`` attribute of the ``<input type="number">`` dialog field
+        # (id="changeto" / name="changeto[x2]"), formatted with 2 decimals
+        # (e.g. ``value="2.00"``).  It is the canonical current value for
+        # numeric addresses (select dialogs use the ``selected`` option).
+        for match in _NUMBER_INPUT_RE.finditer(html):
+            attrs = dict(_ATTR_RE.findall(match.group(0)))
+            if attrs.get("id") == "changeto" or attrs.get("name") in ("changeto", "changetox2"):
+                value = attrs.get("value", "").strip()
+                if value:
+                    info.current_value = value
+                break
 
     if not inputs and info.option_type == "numeric":
         raise CMIChangerError(

@@ -67,6 +67,8 @@ from app.cmi.exceptions import (
     CMISchematicError,
 )
 from app.cmi.json_api import JsonApiClient
+from app.cmi.minderer import MindererService
+from app.cmi.minderer_loop import MindererLoop
 from app.cmi.queue import CMIGuard
 from app.cmi.schematic_parser import SCHEMATIC_PAGES, load_schematic
 from app.config import REPO_ROOT, Settings, get_settings
@@ -134,6 +136,18 @@ class Gateway:
         # The history route merges it into the logical winsol:<N> series
         # (winsol_pq wins on ts collisions).
         self.cmi_log_pq = CmiLogParquet(settings.cmi_log_parquet_dir)
+        # v0.6-A' Phase 2: autonomer Minderer-Regelkreis Zone EG.
+        # Kill-Switch + Rolle entscheiden PRO-ZYKLUS im Loop
+        # (``MindererLoop.cycle_once``); Konstruktion ist CMI-Verkehr-frei
+        # (Service-Client + /LOG-Client sind Lazy im Loop/Service).
+        # NUR Zone EG; Envelope/Intervall/Floor via Settings
+        # (``minderer_loop_*``; Pi-Aktivierung in
+        # deploy/compose/compose-raspi.yml, nie .env).
+        self.minderer_loop = MindererLoop(
+            settings,
+            service=MindererService(settings),
+            log_store=self.cmi_log_pq,
+        )
         self._history_error: str | None = None
         self._last_retention = 0.0
         self._tasks: list[asyncio.Task] = []
@@ -175,13 +189,17 @@ class Gateway:
             asyncio.create_task(self._schematic_poller(), name="cmi-schematic-poller"),
             asyncio.create_task(self._api_poller(), name="cmi-json-api-poller"),
             asyncio.create_task(self._cmi_log_poller(), name="cmi-log-poller"),
+            # v0.6-A' Phase 2: Minderer-Loop IMMER anlegen (Gate-Check pro
+            # Zyklus: Kill-Switch + Rolle + Guards; inaktiv = langer No-op).
+            asyncio.create_task(self._minderer_loop_poller(), name="cmi-minderer-loop"),
         ]
         logger.info(
             "Pollers started: schematics every %.0fs, JSON-API snapshots every %.0fs, "
-            "CMI /LOG store every %.0fs",
+            "CMI /LOG store every %.0fs, Minderer-Loop every %d min",
             self.settings.cmi_poll_sec,
             self.settings.cmi_api_interval_sec,
             self.settings.cmi_log_poll_sec,
+            self.settings.minderer_loop_interval_min,
         )
 
     async def stop_pollers(self) -> None:
@@ -196,6 +214,7 @@ class Gateway:
         await self.stop_pollers()
         await self.client.aclose()
         await self.cmi_log.aclose()
+        await self.minderer_loop.aclose()
         self.history.close()
         self.winsol.close()
         self.cmi_log_pq.close()
@@ -248,6 +267,18 @@ class Gateway:
                 "months": self.cmi_log_pq.months_range(),
             },
         }
+
+    def minderer_loop_status(self) -> dict:
+        """Minderer-Loop-Status-Block für /health (v0.6-A' Phase 2).
+
+        Das in-Memory-Status-Objekt des Loops (``MindererLoopStatus``):
+        Kill-Switch/Rolle-Status, letzter Zyklus (ts/ok/kill-Reason),
+        letzte Entscheidung (dt/ext/v_now/v_target/written/reason),
+        letzter Write (ts/v/read-back), a18-Verifikations-Status
+        (pending/target/tries/last_a18/state) + Transient-Give-up-Flag.
+        Günstig: kein CMI-/DB-Zugriff (nur das Status-Objekt).
+        """
+        return self.minderer_loop.status.as_dict()
 
     def _maybe_retention(self) -> None:
         """Prune measurements older than the retention window (hourly).
@@ -676,6 +707,27 @@ class Gateway:
                     await asyncio.sleep(30.0)
             # Loop pacing: each fetch already waited >= CMI_API_INTERVAL_SEC via
             # the limiter; no extra sleep needed.
+
+    async def _minderer_loop_poller(self) -> None:
+        """Minderer-Loop-Poller (v0.6-A' Phase 2, Zone EG; v2: O8-Gate +
+        Verhältnis-Korrektur).
+
+        Infinite-Loop ``cycle_once()`` + Intervall-Sleep
+        (``minderer_loop_interval_min``).  Die komplette Zyklus-Logik
+        (Gate/Read/Decide/Write/Verify) LEBT IN
+        :meth:`MindererLoop.cycle_once` -- dieser Adapter schläft nur.
+        Alle Exceptions gefangen (``MindererLoop`` tut das intern; hier
+        eine zweite Schicht, so dass selbst ein unvorhergesehener Fehler
+        den Task nie abbrechen lässt).
+        """
+        while True:
+            try:
+                await self.minderer_loop.cycle_once()
+            except Exception:  # noqa: BLE001 - poller must survive anything
+                logger.exception("Minderer-Loop: unexpected cycle error")
+            await asyncio.sleep(
+                max(1.0, float(self.settings.minderer_loop_interval_min) * 60.0)
+            )
 
 
 # ---------------------------------------------------------------------------

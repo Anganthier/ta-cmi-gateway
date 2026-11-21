@@ -81,6 +81,68 @@ def test_parse_numeric_changer():
     assert info.max_value == "95"
 
 
+# ---------------------------------------------------------------------------
+# v0.6-A' numeric read-back (UVR610 Minderer-Sollspannungen, Discovery 18.11)
+# ---------------------------------------------------------------------------
+def test_parse_numeric_readback_value_attribute():
+    """The CMI's own live value of a numeric dialog = the ``value`` attribute
+    of the ``<input type="number">`` (real EG changer HTML, page 6, x2)."""
+    html = (
+        '<input type="hidden" value="2000014414D10D" name="changeadrx2" id="changeadr">'
+        "2.00 - 10.00V<br>"
+        '<input type="number" name="changetox2" min="2.00" max="10.00" '
+        'value="2.00" id="changeto" class="schanger" step="0.01">'
+    )
+    info = parse_changer_html(html, display_address="10144142091", x2=True)
+    assert info.option_type == "numeric"
+    assert info.change_address == "2000014414D10D"
+    assert info.current_value == "2.00"
+    assert info.min_value == "2.00"
+    assert info.max_value == "10.00"
+    assert info.settable_values == ["2.00", "10.00"]
+
+
+def test_parse_numeric_readback_name_changeto_nonx2():
+    """Non-x2 variant: ``name="changeto"`` (no sadrx2) is recognized too."""
+    html = (
+        '<input type="hidden" value="2000004414D10D" name="changeadr" id="changeadr">'
+        '<input type="number" name="changeto" min="2.00" max="10.00" value="8.25">'
+    )
+    info = parse_changer_html(html, display_address="10044142091", x2=False)
+    assert info.option_type == "numeric"
+    assert info.current_value == "8.25"
+
+
+def test_parse_numeric_readback_without_value_stays_none():
+    """Numeric dialog without a ``value`` attribute -> current_value stays
+    None (no invented value); min/max are still parsed."""
+    html = (
+        '<input type="hidden" value="2000024414D10D" name="changeadrx2" id="changeadr">'
+        '<input type="number" name="changetox2" min="2.00" max="10.00" id="changeto">'
+    )
+    info = parse_changer_html(html, display_address="10244142091", x2=True)
+    assert info.option_type == "numeric"
+    assert info.current_value is None
+    assert info.min_value == "2.00"
+    assert info.max_value == "10.00"
+    assert info.settable_values == ["2.00", "10.00"]
+
+
+def test_settable_values_numeric_bounds_or_empty():
+    from app.cmi.changer_resolver import ChangerInfo
+
+    bounds = ChangerInfo(
+        display_address="10144142091",
+        x2=True,
+        option_type="numeric",
+        min_value="2.00",
+        max_value="10.00",
+    )
+    assert bounds.settable_values == ["2.00", "10.00"]
+    no_bounds = ChangerInfo(display_address="10144142091", x2=True, option_type="numeric")
+    assert no_bounds.settable_values == []
+
+
 def test_parse_time_changer():
     html = (
         '<input type="hidden" value="0190000000" name="changeadr" id="changeadr">'

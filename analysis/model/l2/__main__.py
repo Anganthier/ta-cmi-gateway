@@ -73,6 +73,20 @@ def main(argv: list[str] | None = None) -> int:
                      help="'YYYY-MM-DD HH:MM:SS' (Default: jetzt Berlin)")
     cvm.add_argument("--out", type=Path, default=None,
                      help="Ziel-JSON (Default data/l2/vl_minimum.json)")
+    cmk = sub.add_parser(
+        "calibrate-minderer-curve",
+        help="v0.6-A: Minderer-V→ΔT-Kennlinie je Strang (2-Faktor, last- "
+        "normalisiert; Kennlinien-Punkte = O8-AN + NORMAL + Minderer-offen, "
+        "Phasen ≥ 1 h konstante Sollspannung, ab Lernstart "
+        "2026-11-07 16:14) → data/l2/minderer_curve.json (einmalig, "
+        "caches-fähig; Rebuild-Befehl für das Kennlinien-Artefakt)",
+    )
+    cmk.add_argument("--data-dir", type=Path, default=None,
+                     help="Daten-Root (Default data/)")
+    cmk.add_argument("--now", default=None,
+                     help="'YYYY-MM-DD HH:MM:SS' (Default: jetzt Berlin)")
+    cmk.add_argument("--out", type=Path, default=None,
+                     help="Ziel-JSON (Default data/l2/minderer_curve.json)")
     a = ap.parse_args(argv)
 
     # --- v0.5 Ticket C: VL-Kalibrierung (einmalig, caches-fähig) ---
@@ -130,6 +144,49 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  out: {out_path}")
         print("  Rebuild-Befehl: python -m analysis.model.l2 calibrate-vl-min "
               "(pro recommend() nur Cache-Read)")
+        return 0
+
+    # --- v0.6-A: Minderer-V→ΔT-Kennlinie (einmalig, caches-fähig) ---
+    if a.cmd == "calibrate-minderer-curve":
+        from . import minderer_curve as mind_cv
+
+        art = mind_cv.build_minderer_curve(
+            data_dir=a.data_dir,
+            now=a.now,
+            out_path=a.out,
+        )
+        out_path = a.out or mind_cv.minderer_curve_path()
+        print("L2 v0.6-A · Minderer-V→ΔT-Kennlinie je Strang "
+              f"(ab Lernstart {art.get('learn_start')})")
+        print(f"  2-Faktor-Modell ΔT = a·(1/V) + b·ext + c; Kennlinien-Punkte "
+              f"= O8-AN + NORMAL + Minderer-offen, Phasen ≥ "
+              f"{config.RM_CURVE_MIN_HOURS:.0f} h konstante Sollspannung")
+        for z in config.ZONES:
+            zz = (art.get("zones") or {}).get(z) or {}
+            n_pts = zz.get("n_points", 0)
+            usable = "usable" if zz.get("usable") else "nicht usable (Fallback linear)"
+            if zz.get("usable"):
+                print(
+                    f"  {z:4s}: n={n_pts} · a={zz.get('a')} b={zz.get('b')} "
+                    f"c={zz.get('c')} · σ={zz.get('resid_sigma')} K · "
+                    f"ext-Band {zz.get('ext_min')}…{zz.get('ext_max')} °C · {usable}"
+                )
+            else:
+                print(f"  {z:4s}: n={n_pts} · {usable}")
+            for r in zz.get("residuals") or []:
+                print(f"       resid {r.get('v'):>4.1f} V: {r.get('resid_k'):+.2f} K")
+            if zz.get("out_of_throttle_regime"):
+                s10 = zz.get("satur_10v") or {}
+                print(
+                    f"       ⚠ Sättigungs-Regime: 10-V-Punkt residuum "
+                    f"{zz.get('satur_10v_resid_k'):+.2f} K ≥ "
+                    f"{config.RM_CURVE_SAT_RESID_K} → Fit ohne 10-V "
+                    f"(Inverse nutzt Drossel-Regime; 10-V-Kontext: "
+                    f"{s10.get('dt_offen')} K @ {s10.get('aussen_o')} °C)"
+                )
+        print(f"  out: {out_path}")
+        print("  Rebuild-Befehl: python -m analysis.model.l2 "
+              "calibrate-minderer-curve (pro recommend() nur Cache-Read)")
         return 0
 
     # --- v0.5 Ticket D: Lag-Schätzung (einmalig, caches-fähig) ---

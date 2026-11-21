@@ -565,7 +565,7 @@ def test_vl_kalibrierung_e2e_bewiesener_band(tmp_path: Any, wx_ok: Any,
     """DoD-C (e2e): usables Außen-T-Band (12) im Cache → Kalibrierungs-
     Empfehlung (statt Heuristik): dev aus dem Band, Ziel-VL-Soll =
     Standard-Kurve + Raster; „Kalibrierung nicht verfügbar“ NICHT da.
-    Szenario: Band-Ø WÄRMER als Kurve (dev +3,0 K) → Absenken (−1 Raster)."""
+    Szenario: Band-Ø WÄRMER als Kurve (dev +7,4 K) → Absenken (−1 Raster)."""
     root = make_calib_store(tmp_path / "cal", n_band12=60, vl_band12=46.0, n_band9=10)
     art = vl_cal.calibrate_vl(features_dir=root, now="2026-11-07 00:00:00",
                               out_path=tmp_path / "vl_calib.json")
@@ -581,8 +581,8 @@ def test_vl_kalibrierung_e2e_bewiesener_band(tmp_path: Any, wx_ok: Any,
     vl = next(e for e in rec.empfehlungen if e["parameter"] == "Heizkurve/VL-Soll")
     from analysis.model.m2b.features import vlst_est
 
-    curve13 = float(vlst_est(np.array([13.0]))[0])  # 43,0 (HK_CURVE)
-    dev = 46.0 - curve13  # +3,0 K (wärmer) → −1 Raster (absenken)
+    curve13 = float(vlst_est(np.array([13.0]))[0])  # 38,6 (HK_CURVE neu 41/65)
+    dev = 46.0 - curve13  # +7,4 K (wärmer) → −1 Raster (absenken)
     assert vl_cal.raster_sign(dev) == -1
     assert vl["vorgeschlagen"].startswith("Heizkurven-Absatz −1 Raster")
     assert "VL-Kalibrierung (Heizstunden-Only, n=60" in vl["begruendung_de"]
@@ -611,13 +611,13 @@ def test_heizkurve_klartext_fallback_und_detail() -> None:
     (dev = Ist-VL − Kurve; dev ≤ −VL_ERR_HIGH_K → −1 Raster, Ziel = Kurve − 1)."""
     from analysis.model.m2b.features import vlst_est
 
-    st = _state(ext=9.0, hz_vl=40.0)  # aktiv heizend (oel_burner_on_sum3h=1,0)
+    st = _state(ext=9.0, hz_vl=39.0)  # aktiv heizend (oel_burner_on_sum3h=1,0)
     adv = tier_b_advisories(st, None, [], _real_discovery())
     vl = next(e for e in adv if e["parameter"] == "Heizkurve/VL-Soll")
-    curve9 = float(vlst_est(np.array([9.0]))[0])  # ≈ 45,7
-    dev = 40.0 - curve9  # ≈ −5,7 K → −1 Raster (Absatz-Heuristik, dev ≤ −2 K)
+    curve9 = float(vlst_est(np.array([9.0]))[0])  # ≈ 41,8 (HK_CURVE neu 41/65)
+    dev = 39.0 - curve9  # ≈ −2,8 K → −1 Raster (Absatz-Heuristik, dev ≤ −2 K)
     # Klartext-Hauptzeilen:
-    assert f"Ist-VL 40.0 °C bei Außen 9.0 °C (Standard-Kurve {curve9:.1f} °C" in vl["aktuell"]
+    assert f"Ist-VL 39.0 °C bei Außen 9.0 °C (Standard-Kurve {curve9:.1f} °C" in vl["aktuell"]
     assert f"VL ~{abs(dev):.1f} K zu niedrig" in vl["aktuell"]
     assert "Raster" not in vl["aktuell"]
     assert "1 Raster absenken" in vl["vorgeschlagen"]
@@ -677,10 +677,10 @@ def test_vl_kalibrierung_beibehalten_im_raster(tmp_path: Any, wx_ok: Any,
                                                skill_map: Any,
                                                monkeypatch: Any) -> None:
     """DoD-C: Band-Deviation im Raster (|dev| < 1 K) → „beibehalten“."""
-    root = make_calib_store(tmp_path / "cal", n_band12=60, vl_band12=43.5, n_band9=10)
+    root = make_calib_store(tmp_path / "cal", n_band12=60, vl_band12=39.0, n_band9=10)
     art = vl_cal.calibrate_vl(features_dir=root, now="2026-11-07 00:00:00",
                               out_path=tmp_path / "vl_calib.json")
-    # curve(13) = 43,0; VL-Ø 43,5 → dev +0,5 K → im Raster (beibehalten).
+    # curve(13) = 38,6 (neu 41/65); VL-Ø 39,0 → dev +0,4 K → im Raster (beibehalten).
     assert vl_cal.raster_sign(art["bands"]["12"]["dev_k"]) == 0
     store = _set_store_cols(make_mini_store(tmp_path / "features"),
                             ext=13.0, hz_vl=40.0,
@@ -705,15 +705,15 @@ def test_vl_kalibrierung_zielbild_kein_anheben(tmp_path: Any, wx_ok: Any,
                                                skill_map: Any,
                                                monkeypatch: Any) -> None:
     """DoD-C (Zielbild „VL so niedrig wie möglich“): kältere Abweichung
-    (Band-Ø < Kurve, dev < −VL_RASTER_K) → Kurve **NICHT anheben** (Komfort
+    (Band-Ø < Kurve, dev < 0) → Kurve **NICHT anheben** (Komfort
     via RAS-Offsets; kein data-belegtes weiteres Absenken) → „beibehalten“,
     Ziel = Standard-Kurve. (Fallback-Heuristik ohne Kalibrierung hebt an,
     s. ``test_v004_*``-Regression — hier aber kalibriert.)"""
     root = make_calib_store(tmp_path / "cal", n_band12=60, vl_band12=38.0, n_band9=10)
     art = vl_cal.calibrate_vl(features_dir=root, now="2026-11-07 00:00:00",
                               out_path=tmp_path / "vl_calib.json")
-    # curve(13) = 43,0; VL-Ø 38,0 → dev −5,0 K (kälter) → kein Anheben.
-    assert art["bands"]["12"]["dev_k"] == pytest.approx(-5.0, abs=0.1)
+    # curve(13) = 38,6 (neu 41/65); VL-Ø 38,0 → dev −0,6 K (kälter) → kein Anheben.
+    assert art["bands"]["12"]["dev_k"] == pytest.approx(-0.6, abs=0.1)
     store = _set_store_cols(make_mini_store(tmp_path / "features"),
                             ext=13.0, hz_vl=40.0,
                             oel_burner_on_sum3h=1.0, pump_hz_on_sum3h=0.0)

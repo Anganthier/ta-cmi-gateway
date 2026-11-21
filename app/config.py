@@ -127,6 +127,57 @@ class Settings(BaseSettings):
     #: engine runs <= every 5 min, default).
     recommend_cache_min: int = Field(default=5)
 
+    # --- Minderer-Loop Phase 2 (v0.6-A') ---------------------------------------
+    # Autonomer EG-Minderer-Regelkreis im Gateway (in-Gateway-Background-
+    # Loop neben dem CMI-/LOG-Poller): Ziel-ΔT ≈ 10 K (L2-Bausteine,
+    # Single Source analysis/model/l2), Envelope 2–7 V, max 1×/h via
+    # MindererService-Rate-Limit, Ground-Truth-Verifikation per /LOG a18
+    # (UVR-/LOG-Ground-Truth, nicht nur CMI-OK), Transient-Handling
+    # (12:49-Fenster: Write wird vom CMI bestätigt, vom UVR zeitweise
+    # ~17 min nicht angewendet).  NUR Zone EG (Phase 2).
+    #
+    # **Kill-Switch + Rolle (kanonisiert, maintainer):** der Loop schreibt
+    # NIEMALS in die CMI außer (a) MINDERER_LOOP_ENABLED=1 AND
+    # (b) CMI_ROLE=prod (Pi = Master, s. ``cmi_role``).  Default: aus.
+    # Dev-Umgebung (cmi_role=dev) → 0 CMI-Verkehr (Gate VOR allem).
+    #: Kill-Switch für den autonomen Minderer-Loop (Default AUS, fail-safe).
+    #: Pydantic-Bool: "1"/"true"/"yes"/"on" (case-insens.) = an,
+    #: "0"/"false"/"no"/"off" = aus.  WICHTIG: steht NIE in der .env
+    #: (1:1-Spiegel-Kontrakt, s. ``cmi_role``) sondern in
+    #: deploy/compose/compose-raspi.yml (Pi-Aktivierung).
+    minderer_loop_enabled: bool = Field(default=False)
+    #: Zyklus-Intervall in Minuten (Default 15; der Write bleibt max 1×/h
+    #: via dem bestehenden Rate-Limit -- der Intervall-Sleep paces nur
+    #: den Lese-/Verifikationszyklus).
+    minderer_loop_interval_min: int = Field(default=15)
+    #: Regelkreis-Zone (NUR ``eg`` erlaubt; anderes → Loop inaktiv +
+    #: Status-Flag, kein Crash).  Phase 2 = EG-Minderer (a18).
+    minderer_loop_zone: str = Field(default="eg")
+    #: Envelope-Minimum (V).  Envelope-Clip für ``v_target`` (Default 2.0).
+    minderer_loop_v_min: float = Field(default=2.0)
+    #: Envelope-Maximum (V, Drossel-Regime).  Sättigungs-Flag ab ~10 V im
+    #: Kurven-Fit (v0.6-A) macht > 7 V unzulässig; Envelope-Clip (Default 7.0).
+    minderer_loop_v_max: float = Field(default=7.0)
+    #: v2 (21.11): Maximalschritt je Zyklus (V, Default 0.75).  Der
+    #: Verhältnis-Korrektur-Wert ``v_now · (ΔT_ist/ΔT_ziel)`` wird in beide
+    #: Richtungen auf ± ``minderer_loop_max_step_v`` relativ zum
+    #: CMI-Istwert geklemmt, DANN erst Envelope-Clip.  Bei max. 1×/h
+    #: (Rate-Limit) = sehr träge (maintainer-Vorgabe „sehr träge“).
+    minderer_loop_max_step_v: float = Field(default=0.75)
+    #: Mindest-ΔV (V) für einen Write (Default 0.05).  OOB-Außen-T:
+    #: verdoppelt (0.10) -- außerhalb des Fit-Kalibrierungsbands ist das
+    #: V-Ziel unsicherer, größerer Deadband = weniger Fehltritte.
+    minderer_loop_deadband_v: float = Field(default=0.05)
+    #: Raum-T-Floor EG (°C): darunter = kein Drosseln (v_target < v_now
+    #: blockiert; Anheben bleibt erlaubt -- Raum zu kalt → nie weiter
+    #: drosseln).  Default 20.8.
+    minderer_loop_room_floor_c: float = Field(default=20.8)
+    #: Verifikations-/Resend-Prüfungen bis Give-up (Default 6, ~1.5 h bei
+    #: 15-min-Takt, 4 Resends).  Give-up: ``transient_giveup=True`` +
+    #: Audit ``minderer_verify ok=false`` + kein weiteres Resend (bis eine
+    #: NEUE Entscheidung das Pending ersetzt).
+    minderer_loop_verify_giveup: int = Field(default=6)
+
     # --- S3-1 write route (/api/v1/change) ------------------------------------
     #: Audit JSONL path for every attempted change (success AND failure):
     #: ``{ts, adr, label, from, to, user, readback, applied, http_status}``.
@@ -135,6 +186,20 @@ class Settings(BaseSettings):
     audit_jsonl_path: Path = Field(default=REPO_ROOT / "data" / "audit" / "change.jsonl")
 
     # --- Gateway security ----------------------------------------------------
+    #: CMI role gate for real CMI writes (v0.6-A', maintainer-Forderung 18.11:
+    #: Pi ist Master; die lokale Dev-Umgebung darf NIEMALS in die CMI
+    #: schreiben).  ``dev`` (Default) = jeder echte CMI-Write (``write()`` in
+    #: :mod:`app.cmi.write`) raise :class:`~app.cmi.exceptions.CMISafetyError`
+    #: VOR jeglichem HTTP-Verkehr; der wertneutrale No-op-Write (aktueller
+    #: Wert zurueckgeschrieben, Strict-Drift-Check) bleibt in dev erlaubt
+    #: (maintainer-Go: einmalig lokalen Pfad-Test).  ``prod`` = echte CMI-Writes
+    #: freigegeben (Master am Pi).  Ungültige Werte (z. B. ``PROD``,
+    #: ``prodX``) werden FAIL-SAFE wie ``dev`` behandelt -- ein Tippfehler
+    #: darf niemals Writes freigeben.  Wichtig: `prod` gehoert NICHT in die
+    #: `.env` (das Pi-`.env` ist 1:1-Spiegel der lokalen, pi_deploy_r1.sh),
+    #: sondern in `deploy/compose/compose-raspi.yml` (Compose-`environment`
+    #: ueberschreibt `env_file`).
+    cmi_role: str = Field(default="dev")
     #: Bearer token accepted for read routes. Empty = auth disabled for reads.
     gateway_read_token: str = Field(default="")
     #: Bearer token accepted for the S3-1 write route (``POST /api/v1/change``).

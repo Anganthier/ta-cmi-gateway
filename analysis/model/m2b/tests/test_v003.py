@@ -46,7 +46,10 @@ def test_uvr_margins_and_proxies():
     assert v["uvr_o1_margin_last"] == pytest.approx(min(60 - 65, 60 - 68 - 3))
     assert v["buff_strat_top_mid"] == pytest.approx(10) and v["buff_strat_mid_bot"] == pytest.approx(10)
     assert v["hz_flow_pump"] == pytest.approx(5.0) and v["hz_flow_o9"] == pytest.approx(10.0)
-    assert v["vlst_est"] == pytest.approx(45 + 10 * 2 / 3, abs=1e-4)
+    # ext=0,0 → Kurve: 41 + 10 K · 24/30 K/K = 49,0 °C (20.11-Feldtest-Kurve
+    # 41/65; der Test-Ist-VL hz_vl=45 ist unveränderter Test-Input).
+    assert v["vlst_est"] == pytest.approx(41 + 10 * 24 / 30, abs=1e-4)
+    # vl_err bleibt "vlst_est − Test-Ist-VL" (45 ist Ist-Input, kein Kurvenwert):
     assert v["vl_err"] == pytest.approx(v["vlst_est"] - 45, abs=1e-4)
     # NULL bleibt NULL (LightGBM: fehlt)
     Xn, _ = features.derive(_raw_f3(oil_vl=[np.nan]), _ts(), names=["uvr_o2_margin"])
@@ -56,11 +59,25 @@ def test_uvr_margins_and_proxies():
 def test_vlst_est_curve_and_clamp():
     ext = np.array([10.0, -20.0, -5.0, 40.0, 55.0, -27.5, -40.0, np.nan])
     v = features.vlst_est(ext)
-    np.testing.assert_allclose(v[:3], [45.0, 65.0, 55.0])
+    # ext [10, −20, −5]: 41,0 / 65,0 / 41 + 15·(24/30) = 53,0 (Kurvenwechsel
+    # 20.11: +10-Punkt 45 → 41; −20-Punkt 65 und die Klemmen unverändert).
+    np.testing.assert_allclose(v[:3], [41.0, 65.0, 53.0])
     assert v[3] == pytest.approx(config.HK_VL_MIN) and v[4] == pytest.approx(config.HK_VL_MIN)  # unten geklemmt
     assert v[5] == pytest.approx(config.HK_VL_MAX) and v[6] == pytest.approx(config.HK_VL_MAX)  # oben geklemmt
     assert np.isnan(v[7])
     assert ((v[:7] >= 25) & (v[:7] <= 70)).all()
+
+
+def test_hk_curve_field_test_2026_11():
+    """20.11-Feldtest (maintainer, live im TA-Designer): +10-°C-Punkt 45 → 41 °C
+    (Rollback-Ladter 41→43→45), −20-°C-Punkt 65 °C unverändert."""
+    assert features.vlst_est(np.array([10.0]))[0] == pytest.approx(41.0)
+    assert features.vlst_est(np.array([-20.0]))[0] == pytest.approx(65.0)
+    # Steigung 0,8 K/K: vlst_est(0) = 41 + 10 · 0,8 = 49,0 °C
+    assert features.vlst_est(np.array([0.0]))[0] == pytest.approx(49.0)
+    # Klemmen unverändert (VLMax/VLMin):
+    assert features.vlst_est(np.array([40.0]))[0] == pytest.approx(config.HK_VL_MIN)
+    assert features.vlst_est(np.array([-40.0]))[0] == pytest.approx(config.HK_VL_MAX)
 
 
 def _rule_raw(perc_last, rule_last, rule):

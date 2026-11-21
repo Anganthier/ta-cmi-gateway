@@ -19,7 +19,16 @@ Safety rules (hard, enforced BEFORE any network call):
   within ``[min, max]`` (numeric).  Nothing else;
 * a no-op write re-sends the exact current value.  After the write the value
   is re-read (read-back) and in strict mode any drift raises
-  :class:`~app.cmi.exceptions.CMISafetyError`.
+  :class:`~app.cmi.exceptions.CMISafetyError`;
+* **CMI role gate** (v0.6-A', maintainer-Forderung 18.11): the local Dev
+  environment must NEVER write into the CMI (both Dev and Pi gateways point
+  at the same CMI 192.168.0.100; the Pi is Master).  ``CMI_ROLE`` (default
+  ``dev``): every REAL value write raises :class:`~app.cmi.exceptions.
+  CMISafetyError` BEFORE any network call; the value-neutral
+  :meth:`CMIWriteClient.noop_write` stays allowed in dev (approved for the
+  one-time local capability test).  ``CMI_ROLE=prod`` (Pi, via
+  ``deploy/compose/compose-raspi.yml`` -- NOT the 1:1-mirrored ``.env``)
+  releases real writes.
 
 Endpoints (all verified against the CMI's own frontend ``discovery/scheme.js``):
 
@@ -58,11 +67,21 @@ from app.cmi.client import _SCHEMATIC_PATH_RE, CMIClient
 from app.cmi.exceptions import CMIConnectionError, CMIGatewayError, CMISafetyError
 from app.cmi.queue import CMISerialQueue
 from app.cmi.schematic_parser import parse_schematic_html
+from app.config import get_settings
 
 logger = logging.getLogger("cmi.write")
 
 #: The single write endpoint this module may touch.
 WRITE_ENDPOINT: Final[str] = "/INCLUDE/change.cgi"
+
+#: CMI role gate (v0.6-A', maintainer-Forderung 18.11: Pi ist Master).  ``dev``
+#: (default) forbids every REAL value write into the CMI from this process;
+#: ``prod`` allows it.  Invalid/unset values fail safe to ``dev``.  The
+#: value-preserving :meth:`CMIWriteClient.noop_write` (current value written
+#: back to itself) is exempt -- maintainer explicitly approved one-time local
+#: path testing via the value-neutral no-op write.
+CMI_ROLE_DEV: Final[str] = "dev"
+CMI_ROLE_PROD: Final[str] = "prod"
 
 #: Endpoints the write client's own allow-list permits: the write itself plus
 #: the read-back changer endpoints (the schematic value pages are permitted
@@ -76,7 +95,8 @@ WRITE_ALLOWED_PATHS: Final[frozenset[str]] = frozenset(
 )
 
 #: L1 whitelist -- the 9 settable display addresses (Discovery 2026-10-26/27,
-#: ``docs/plant-model.json`` ``settable.elements``).
+#: ``docs/plant-model.json`` ``settable.elements``) + the 3 Minderer
+#: Sollspannung addresses (v0.6-A').
 WRITABLE_ADDRESSES: Final[frozenset[str]] = frozenset(
     {
         "101301D0180",  # Betriebsmodus (7 options)
@@ -88,6 +108,11 @@ WRITABLE_ADDRESSES: Final[frozenset[str]] = frozenset(
         "10520A10180",  # Oelbrenner (RISK -- inventory only, never writable)
         "10920A10180",  # Ventil Heizkreis-Ruecklauf
         "10040912091",  # Solarpumpe Modus (x2)
+        # v0.6-A' Minderer-Fixwerte (UVR610 Sollspannung 1/2/3), Discovery 18.11
+        # (Seite 6, UVR610-Node 32; numeric, 2.00–10.00 V):
+        "10044142091",  # Sollspannung 1 (Keller; Annahme a17 -> kell)
+        "10144142091",  # Sollspannung 2 (EG; Annahme a18 -> eg, live bestaetigt)
+        "10244142091",  # Sollspannung 3 (DG; Annahme a19 -> dg)
     }
 )
 
@@ -95,10 +120,21 @@ WRITABLE_ADDRESSES: Final[frozenset[str]] = frozenset(
 RISK_ADDRESSES: Final[frozenset[str]] = frozenset({"10520A10180"})
 
 #: x2 (UVR610 node 32) display addresses -- resolved via ``changerx2.cgi``.
-X2_ADDRESSES: Final[frozenset[str]] = frozenset({"10040912091"})
+X2_ADDRESSES: Final[frozenset[str]] = frozenset(
+    {
+        "10040912091",  # Solarpumpe Modus
+        # v0.6-A' Minderer-Sollspannungen (UVR610, Seite 6), Discovery 18.11:
+        "10044142091",
+        "10144142091",
+        "10244142091",
+    }
+)
 
 #: First schematic page on which each address is bound (read-back source).
-#: Verified against ``discovery/live_{1..5}.cgi`` (2026-10-26).
+#: Verified against ``discovery/live_{1..5}.cgi`` (2026-10-26); the three
+#: Minderer addresses are bound on schematic page 6 (UVR610, Discovery 18.11
+#: -- the page itself is live-only, the recorded ``discovery/live_6.cgi``
+#: fixture is a 404 body).
 ADDRESS_PAGES: Final[dict[str, int]] = {
     "101301D0180": 1,
     "10820A10180": 1,
@@ -109,12 +145,36 @@ ADDRESS_PAGES: Final[dict[str, int]] = {
     "10520A10180": 1,
     "10920A10180": 1,
     "10040912091": 1,  # also present on page 4; page 1 is canonical
+    "10044142091": 6,  # v0.6-A' Minderer (Sollspannung 1/Keller)
+    "10144142091": 6,  # v0.6-A' Minderer (Sollspannung 2/EG)
+    "10244142091": 6,  # v0.6-A' Minderer (Sollspannung 3/DG)
 }
 
 #: Default delay between the change.cgi write and the read-back fetch, in
 #: seconds.  The CMI's own frontend issues a full page reload right after the
 #: write; one second leaves headroom for the CGI to settle.
 DEFAULT_READBACK_DELAY_SEC: Final[float] = 1.0
+
+#: Browser signature the CMI's own frontend sends with every ``change.cgi``
+#: call (v0.6-A' Phase 2 Fix F1, 18.11): the CMI (``Keil-EWEB/2.1``) answers
+#: ``GET /INCLUDE/change.cgi`` with ``OK\r`` but SILENTLY DISCARDS the value
+#: unless the request carries a browser signature (no ``python-httpx`` UA,
+#: no Referer, no ``X-Requested-With`` -> read-back mismatch, UVR a18
+#: unmoved; with the browser headers the same request is accepted).  Live
+#: A/B evidence and the verified header set (incl. the IP/LAN Referer
+#: variants) are canonised in ``tmp/forensic_write_log.md`` + the CIR-Log
+#: entry of 18.11.  The Referer (page 1 ``/schema.html``) is derived from
+#: ``base_url`` at :class:`CMIWriteClient` construction time.  ONLY the
+#: write client sends this signature; the read-only :class:`CMIClient`
+#: stays un-spoofed.
+CMI_BROWSER_HEADERS: Final[dict[str, str]] = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    ),
+    "X-Requested-With": "XMLHttpRequest",
+    "Accept": "*/*",
+}
 
 #: Retry delay for the single write-attempt retry (transport-level errors only,
 #: e.g. a collision with the running gateway poller).
@@ -259,6 +319,57 @@ def _parse_numeric_token(token: str) -> float | None:
         return None
 
 
+def normalize_role(value: str | None) -> str:
+    """Map any raw CMI_ROLE value to the effective role (fail-safe).
+
+    EXACT match only (case-sensitive, no whitespace/case normalization):
+    only the exact value ``"prod"`` releases writes.  Everything else --
+    ``"PROD"``, ``"prodX"``, ``" prod "``, unset/empty, ``None`` -- maps to
+    :data:`CMI_ROLE_DEV` (Spec 2.2/2.6: „Ungültiger Role-Wert
+    (``CMI_ROLE=PROD``/``prodX``) → dev-Semantik"; fail-safe-priorität:
+    ein Tippfehler oder ein versehentliches Leerzeichen darf niemals
+    Writes freigeben; maintainer-Forderung 18.11, kanonisiert 9aaeb00).
+    """
+    return CMI_ROLE_PROD if value == CMI_ROLE_PROD else CMI_ROLE_DEV
+
+
+def effective_role() -> str:
+    """The CMI role gate value in effect right now (fail-safe).
+
+    Read from :func:`app.config.get_settings` at call time so that
+    environment changes (and tests' ``monkeypatch.setenv("CMI_ROLE", ...)``
+    + ``reset_settings_cache()``) are honored without restarting the
+    process.  Invalid values fail safe to ``dev`` (see
+    :func:`normalize_role`).
+    """
+    return normalize_role(get_settings().cmi_role)
+
+
+def assert_role_allows_real_write(role: str | None = None) -> None:
+    """Raise :class:`CMISafetyError` for real writes unless the role is prod.
+
+    This is the CENTRAL role gate (v0.6-A', maintainer-Forderung 18.11: Pi ist
+    Master; die lokale Dev-Umgebung darf NIEMALS in die CMI schreiben).  It
+    runs BEFORE any network call: in ``dev`` a real value write therefore
+    produces zero CMI traffic.  The value-neutral
+    :meth:`CMIWriteClient.noop_write` (current value re-written to itself)
+    is intentionally NOT gated -- it is maintainer-approved for the one-time
+    local capability test of the full ``change.cgi`` path.
+
+    Args:
+        role: explicit role value (from the client's own settings when
+            injected); ``None`` = the global settings' role
+            (:func:`effective_role`).
+    """
+    effective = normalize_role(role) if role is not None else effective_role()
+    if effective != CMI_ROLE_PROD:
+        raise CMISafetyError(
+            "CMI_ROLE=dev: echter CMI-Write ist in der Dev-Umgebung verboten "
+            "(maintainer-Forderung 18.11: Pi ist Master); No-op-Write (wertneutral) "
+            "bleibt erlaubt, für Wert-Changes CMI_ROLE=prod setzen"
+        )
+
+
 def _extract_current(
     info: ChangerInfo, schematic_text: str | None
 ) -> tuple[str | None, str | None, bool]:
@@ -295,6 +406,30 @@ def _extract_current(
         return None, None, False
 
     if info.option_type == "numeric":
+        lo = _parse_numeric_token(info.min_value) if info.min_value else None
+        hi = _parse_numeric_token(info.max_value) if info.max_value else None
+        if info.current_value is not None:
+            # v0.6-A' (Discovery 18.11): for numeric addresses the CMI's own
+            # dialog value (``value`` attribute of the ``<input type=number>``
+            # -- parsed by ``parse_changer_html``) is the CANONICAL current
+            # value, e.g. the UVR610 Minderer-Sollspannungen on page 6.  The
+            # live schematic text is cross-checked for consistency (numeric
+            # equality) but never overrides the dialog value.
+            number = _parse_numeric_token(info.current_value)
+            if number is None:
+                return None, None, False
+            in_range = (lo is None or number >= lo) and (hi is None or number <= hi)
+            consistent = in_range
+            if text is not None:
+                text_match = _NUMBER_RE.search(text)
+                if text_match is None:
+                    consistent = False
+                else:
+                    text_number = _parse_numeric_token(text_match.group(0))
+                    consistent = consistent and (text_number is not None and text_number == number)
+            return info.current_value, None, consistent
+        # Legacy fallback (dialog without a value attribute, e.g. the old
+        # ``type="text"`` fixtures): derive the value from the schematic text.
         if text is None:
             return None, None, False
         match = _NUMBER_RE.search(text)
@@ -304,8 +439,6 @@ def _extract_current(
         number = _parse_numeric_token(value)
         if number is None:
             return None, None, False
-        lo = _parse_numeric_token(info.min_value) if info.min_value else None
-        hi = _parse_numeric_token(info.max_value) if info.max_value else None
         in_range = (lo is None or number >= lo) and (hi is None or number <= hi)
         return value, None, in_range
 
@@ -390,6 +523,14 @@ class CMIWriteClient(CMIClient):
     CMI request is in flight at a time (the CMI tolerates only a single
     outstanding request -- the running gateway's poller can therefore never
     be interleaved with a write).
+
+    Browser signature (v0.6-A' Phase 2 Fix F1): the CMI (``Keil-EWEB/2.1``)
+    accepts ``change.cgi`` writes ONLY with a browser signature -- it
+    answers ``OK\r`` but silently discards requests without one (live A/B
+    evidence: ``tmp/forensic_write_log.md`` / CIR-Log 18.11).  Every
+    request of this client therefore carries :data:`CMI_BROWSER_HEADERS`
+    plus a ``Referer`` derived from the base URL (``.../schema.html``);
+    the read-only :class:`~app.cmi.client.CMIClient` does not.
     """
 
     def __init__(
@@ -403,7 +544,17 @@ class CMIWriteClient(CMIClient):
         readback_delay_sec: float = DEFAULT_READBACK_DELAY_SEC,
         timeout_sec: float = 15.0,
         transport: httpx.AsyncBaseTransport | None = None,
+        role: str | None = None,
     ) -> None:
+        # v0.6-A' Phase 2 Fix F1: browser signature for the write path.  The
+        # CMI accepts change.cgi only with browser headers and a Referer
+        # pointing at its own schematic page (page 1 = schema.html).  The
+        # write-only client gets the full set; the read-only base client is
+        # never spoofed (its ``headers`` default stays None).
+        browser_headers = {
+            **CMI_BROWSER_HEADERS,
+            "Referer": f"{base_url.rstrip('/')}/schema.html",
+        }
         super().__init__(
             base_url=base_url,
             user=user,
@@ -411,10 +562,18 @@ class CMIWriteClient(CMIClient):
             allowed_paths=WRITE_ALLOWED_PATHS,
             timeout_sec=timeout_sec,
             transport=transport,
+            headers=browser_headers,
         )
         self._queue = queue if queue is not None else CMISerialQueue()
         self._strict = strict
         self._readback_delay_sec = readback_delay_sec
+        #: v0.6-A' role gate: explicit role (from the caller's settings when
+        #: injected); ``None`` = the global settings' role.  An injected
+        #: role is authoritative for :meth:`write` so that service-level
+        #: settings (``ChangeService``, ``MindererService``) never disagree
+        #: with the global process role in a meaningful direction: only the
+        #: exact value ``prod`` ever releases a write.
+        self._role = role
 
     # -- lifecycle ------------------------------------------------------------
     async def aclose(self) -> None:
@@ -586,9 +745,12 @@ class CMIWriteClient(CMIClient):
 
         Raises:
             CMISafetyError: RISK address, non-whitelisted address, value
-                outside the allowed option list / numeric range, or (strict)
-                the read-back does not show the requested value.
+                outside the allowed option list / numeric range,
+                :func:`assert_role_allows_real_write` role gate
+                (``CMI_ROLE != prod`` -- BEFORE any network call), or
+                (strict) the read-back does not show the requested value.
         """
+        assert_role_allows_real_write(self._role)  # v0.6-A' role gate: dev -> no HTTP at all
         started = _now()
         self._assert_write_target(display_address)
         info = await self.resolve(display_address)
@@ -624,6 +786,12 @@ class CMIWriteClient(CMIClient):
         This is the state-preserving capability proof for the full
         ``change.cgi`` path: auth, changeadr resolution, the write call itself
         and the read-back -- without changing any plant state.
+
+        Role-gate note (v0.6-A'): the no-op is VALUE-NEUTRAL (changeto ==
+        before.current_value, strict drift check) and is therefore ALLOWED in
+        ``CMI_ROLE=dev`` -- maintainer approved it as the one-time local test of
+        the write path.  Real value writes go through :meth:`write` and hit
+        the role gate there.
 
         Raises:
             CMISafetyError: RISK address, non-whitelisted address, current
@@ -692,6 +860,9 @@ def _request_url(*, params: dict[str, str]) -> str:
 __all__ = [
     "ADDRESS_PAGES",
     "AddressPresence",
+    "CMI_BROWSER_HEADERS",
+    "CMI_ROLE_DEV",
+    "CMI_ROLE_PROD",
     "CMIWriteClient",
     "DEFAULT_READBACK_DELAY_SEC",
     "NoOpResult",
@@ -703,7 +874,10 @@ __all__ = [
     "WRITABLE_ADDRESSES",
     "X2_ADDRESSES",
     "WriteResult",
+    "assert_role_allows_real_write",
     "build_inventory_entry",
     "collect_settable_addresses",
+    "effective_role",
     "format_options",
+    "normalize_role",
 ]
